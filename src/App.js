@@ -286,7 +286,7 @@ const ParticleBackground = React.memo(() => {
     resizeCanvas();
 
     const particles = [];
-    const particleCount = 20; // Increased from 30
+    const particleCount = 30; // Increased from 30
     const connectionDistance = 150; // Increased from 100
     const maxConnections = 20; // New: limit connections per particle
 

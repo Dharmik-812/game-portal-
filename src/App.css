@@ -1,4 +1,4 @@
-/* ====== ENHANCED GAME PORTAL CSS ====== */
+/* ====== ENHANCED AvesOL GAMING CSS ====== */
 /* Reset and base styles */
 * {
   box-sizing: border-box;
@@ -25,6 +25,8 @@
   --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --theme-transition-duration: 1000ms;
   --theme-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Add if you want to store the name as a CSS variable */
+  --site-name: 'AvesOL';
 }
 
 
@@ -2424,5 +2426,192 @@ body {
   .theme-toggle-particles,
   .loader-particles {
     display: none;
+  }
+}
+
+/* Performance Optimizations */
+* {
+  box-sizing: border-box;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Performance optimizations */
+.game-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Improved focus styles for accessibility */
+button:focus,
+input:focus,
+.game-card:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Reduced animation intensity */
+.game-card {
+  animation: cardAppear 0.6s ease-out forwards;
+}
+
+/* Better image loading */
+.game-image-container img {
+  transition: opacity 0.3s ease;
+}
+
+.game-image-container img[src=""],
+.game-image-container img:not([src]) {
+  opacity: 0;
+}
+
+.game-image-container img:not([src=""]) {
+  opacity: 1;
+}
+
+/* Improved touch targets for mobile */
+@media (max-width: 768px) {
+
+  button,
+  .genre-filter,
+  .game-card {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Disable parallax on mobile */
+  .game-card {
+    transform: none !important;
+  }
+}
+
+/* Simplified particle effects */
+.particle-background {
+  opacity: 0.5;
+}
+
+/* Reduced floating elements */
+.floating-elements {
+  opacity: 0.1;
+}
+
+/* Simplified game card hover effects */
+.game-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Remove heavy filters */
+.game-shine,
+.game-sparkle,
+.game-particles,
+.cursor-trail,
+.cursor-trail-particles,
+.btn-glow,
+.btn-particles,
+.modal-particles,
+.footer-particles,
+.hero-particles,
+.game-view-particles,
+.theme-toggle-particles,
+.loader-particles,
+.close-btn-glow,
+.user-glow,
+.filter-glow,
+.filter-underline,
+.logo-orb,
+.logo-pulse {
+  display: none !important;
+}
+
+/* Optimized animations */
+@keyframes cardAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Performance improvements for mobile */
+@media (max-width: 1024px) {
+  .particle-background {
+    display: none;
+  }
+
+  .floating-elements {
+    display: none;
+  }
+}
+
+/* Reduced blur effects */
+.navbar {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.modal-backdrop,
+.game-view-backdrop {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Improved scrolling performance */
+.games-grid {
+  transform: translateZ(0);
+}
+
+/* Reduced shadow effects */
+.navbar {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.game-card {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.game-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Game iframe styling to remove external site UI */
+.game-view-container iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide potential external elements in iframe */
+.game-view-container ::-webkit-scrollbar {
+  display: none;
+}
+
+/* Enhanced game grid for more games */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    padding: 10px;
   }
 }

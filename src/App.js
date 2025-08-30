@@ -479,7 +479,7 @@ function AuthModal({ onClose, onLogin, mode, setMode }) {
         </button>
 
         <div className="modal-header">
-          <h2><AnimatedText text={mode === 'login' ? 'ACCESS PORTAL' : 'CREATE ACCOUNT'} effect="fadeIn" /></h2>
+          <h2><AnimatedText text={mode === 'login' ? 'ACCESS AvesOL' : 'CREATE ACCOUNT'} effect="fadeIn" /></h2>
           <p><AnimatedText text={mode === 'login' ? 'Login to unlock the full experience' : 'Join our gaming community'} effect="fadeIn" delay={300} /></p>
         </div>
 
@@ -559,7 +559,7 @@ function AuthModal({ onClose, onLogin, mode, setMode }) {
 
         <div className="modal-footer">
           <p>
-            {mode === 'login' ? "New to Nexus? " : "Already have an account? "}
+            {mode === 'login' ? "New to AvesOL? " : "Already have an account? "}
             <span onClick={() => {
               setMode(mode === 'login' ? 'signup' : 'login');
               setErrors({});
@@ -666,7 +666,7 @@ function App() {
             <div className="loader-orb"></div>
           </div>
           <div className="loader-text">
-            <AnimatedText text="Initializing Nexus Gaming Portal..." delay={0} />
+            <AnimatedText text="Initializing AvesOL Gaming..." delay={0} />
           </div>
           <div className="loader-particles"></div>
         </div>
@@ -700,7 +700,7 @@ function App() {
             <div className="logo-pulse"></div>
           </div>
           <h1 className="portal-title">
-            <AnimatedText text="NEXUS" delay={0} />
+            <AnimatedText text="AvesOL" delay={0} />
             <AnimatedText text="GAMES" delay={400} className="title-part" />
           </h1>
         </div>
@@ -730,7 +730,7 @@ function App() {
           )}
         </div>
       </nav>
-
+̥
 
       {/* Main Content */}
       <main className="main-content">
@@ -814,7 +814,7 @@ function App() {
       {/* Footer */}
       <footer className="app-footer">
         <div className="footer-content">
-          <p>NEXUS GAMES © 2023 | Play Free Online Games</p>
+          <p>AvesOL GAMES © 2023 | Play Free Online Games</p>
           <div className="footer-links">
             <a href="#">Terms</a>
             <a href="#">Privacy</a>

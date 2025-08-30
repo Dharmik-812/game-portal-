@@ -71,8 +71,11 @@ body {
   width: 100%;
   height: 100%;
   z-index: -2;
-  opacity: 0.7;
+  opacity: 1;
+  /* Increased from 0.8 */
   pointer-events: none;
+  filter: contrast(1.2);
+  /* Added for more vibrant connections */
 }
 
 
@@ -322,8 +325,8 @@ body {
   }
 
   50% {
-    opacity: 0.2;
-    transform: scale(1.5);
+    opacity: 0.3;
+    transform: scale(1.6);
   }
 }
 
@@ -1113,21 +1116,18 @@ body {
       rgba(255, 255, 255, 0) 100%);
   transform: rotate(45deg) translateY(-100%);
   pointer-events: none;
-  /* Remove the always-on animation */
   opacity: 0;
-  /* Hide by default */
+  transition: opacity 0.3s;
+  z-index: 2;
 }
 
 
-/* Add new hover-specific animation */
 .game-card:hover .game-shine {
   opacity: 1;
   animation: shine 1.5s ease-in-out;
-  /* Shorter duration for better performance */
 }
 
 
-/* Modify the shine keyframes to be more efficient */
 @keyframes shine {
   0% {
     transform: rotate(45deg) translateY(-100%);
@@ -1138,16 +1138,6 @@ body {
   }
 }
 
-
-/* Add will-change for better performance */
-.game-card {
-  /* ...existing styles... */
-  will-change: transform;
-}
-
-.game-shine {
-  will-change: transform, opacity;
-}
 
 .game-info {
   padding: 18px;
@@ -2599,12 +2589,270 @@ input:focus,
   padding: 20px;
 }
 
+/* Sort options styling */
+.sort-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px;
+  padding: 10px;
+  background: var(--card-bg);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.sort-options label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sort-options select {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* Stats panel styling */
+.stats-panel {
+  background: var(--card-bg);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.stats-header h3 {
+  margin-bottom: 15px;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 15px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Player profile styling */
+.player-profile {
+  background: var(--card-bg);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.profile-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 15px;
+}
+
+.tab-btn {
+  padding: 10px 15px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+}
+
+.tab-btn.active {
+  color: var(--accent-color);
+  font-weight: 500;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent-color);
+}
+
+.profile-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-list,
+.favorites-grid,
+.achievements-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item,
+.favorite-item,
+.achievement-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.history-item img,
+.favorite-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 10px;
+}
+
+.history-info,
+.achievement-info {
+  flex: 1;
+}
+
+.history-info h4,
+.favorite-item h4,
+.achievement-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 0.9rem;
+}
+
+.history-info span,
+.favorite-item span,
+.achievement-info span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.play-duration {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--card-bg);
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+.favorite-item {
+  flex-direction: column;
+  text-align: center;
+}
+
+.favorite-item img {
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+
+.achievement-item {
+  gap: 10px;
+}
+
+.achievement-icon {
+  font-size: 1.5rem;
+}
+
+/* Notification styling */
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notification {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+  max-width: 300px;
+}
+
+.notification.success {
+  border-left: 4px solid #4caf50;
+}
+
+.notification.info {
+  border-left: 4px solid #2196f3;
+}
+
+.notification.achievement {
+  border-left: 4px solid #ff9800;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), transparent);
+}
+
+.notification-message {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .games-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 15px;
     padding: 15px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .profile-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
   }
 }
 
@@ -2614,4 +2862,84 @@ input:focus,
     gap: 10px;
     padding: 10px;
   }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 10px;
+  }
+
+  .stat-icon {
+    font-size: 1.2rem;
+  }
+
+  .stat-value {
+    font-size: 1.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+}
+
+/* Update the particle background styles */
+.particle-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  opacity: 1;
+  /* Increased from 0.8 */
+  pointer-events: none;
+  filter: contrast(1.2);
+  /* Added for more vibrant connections */
+}
+
+/* Add new styles for particles */
+.particle {
+  position: absolute;
+  background: var(--accent-color);
+  border-radius: 50%;
+  opacity: 0.3;
+  /* Increased opacity */
+  box-shadow: 0 0 10px var(--accent-color),
+    0 0 20px var(--accent-color),
+    0 0 30px var(--accent-color);
+  /* Added glow effect */
+  animation: particleFade 5s infinite ease-in-out;
+}
+
+@keyframes particleFade {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Update theme-specific particle colors */
+[data-theme="light"] .particle-background {
+  filter: contrast(0.9);
+  /* Slightly reduced contrast for light theme */
+  opacity: 0.9;
+  /* Slightly reduced opacity for light theme */
+}
+
+/* Ensure particles are more visible on both themes */
+[data-theme="dark"] .particle {
+  background: rgba(140, 82, 255, 0.4);
+  box-shadow: 0 0 10px rgba(140, 82, 255, 0.4),
+    0 0 20px rgba(140, 82, 255, 0.3),
+    0 0 30px rgba(140, 82, 255, 0.2);
 }

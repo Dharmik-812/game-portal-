@@ -33,6 +33,7 @@ const GAMES = [
   { name: "MooMoo.io", url: "https://moomoo.io/?server=singapore:PW", img: "/moomoo.png", genre: "IO" },
   { name: "Zombs.io", url: "https://zombs.io/", img: "/zombs.png", genre: "IO" },
   { name: "Starblast.io", url: "https://starblast.io/#7134", img: "/starblast.png", genre: "IO" },
+  { name: "Run 3", url: "https://run3.io", img: "/run3.png", genre: "Platformer" },
 ];
 
 // Custom hook for theme management

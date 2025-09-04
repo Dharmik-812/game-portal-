@@ -20,6 +20,19 @@ const GAMES = [
   { name: "Othello", url: "https://playpager.com/embed/reversi/index.html", img: "/othello.PNG", genre: "Board" },
   { name: "Solitaire", url: "https://playpager.com/embed/solitaire/index.html", img: "/solitaire.PNG", genre: "Card" },
   { name: "Falling Cubes", url: "https://playpager.com/embed/cubes/index.html", img: "/tet.jfif", genre: "Puzzle" },
+
+  { name: "Hextris", url: "https://hextris.io/?utm_source=chatgpt.com", img: "/hextrix.png", genre: "Arcade" },
+  { name: "N Game (v2)", url: "https://www.thewayoftheninja.org/nv2.html", img: "/nv2.png", genre: "Platformer" },
+  { name: "Celeste Classic", url: "https://maddymakesgamesinc.itch.io/celesteclassic?utm_source=chatgpt.com", img: "/celeste.png", genre: "Platformer" },
+  { name: "Line Rider", url: "https://www.linerider.com/", img: "/linerider.png", genre: "Sandbox" },
+  { name: "Townscaper", url: "https://oskarstalberg.com/Townscaper/", img: "/townscaper.png", genre: "Sandbox" },
+  { name: "Sandspiel", url: "https://sandspiel.club/", img: "/sandspiel.png", genre: "Sandbox" },
+  { name: "OvO", url: "https://www.mortgagecalculator.org/money-games/ovo/", img: "/ovo.PNG", genre: "Platformer" },
+  { name: "Agar.io", url: "https://agar.io/#ffa", img: "/agar.png", genre: "IO" },
+  { name: "Diep.io", url: "https://diep.io/", img: "/diep.png", genre: "IO" },
+  { name: "MooMoo.io", url: "https://moomoo.io/?server=singapore:PW", img: "/moomoo.png", genre: "IO" },
+  { name: "Zombs.io", url: "https://zombs.io/", img: "/zombs.png", genre: "IO" },
+  { name: "Starblast.io", url: "https://starblast.io/#7134", img: "/starblast.png", genre: "IO" },
 ];
 
 // Custom hook for theme management
@@ -976,6 +989,7 @@ const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentS
             title={game.name}
             allowFullScreen
             allow="fullscreen"
+            sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups"
             loading="eager"
             aria-labelledby="game-view-title"
           />

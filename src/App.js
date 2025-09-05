@@ -26,7 +26,7 @@ const GAMES = [
   { name: "Celeste Classic", url: "https://maddymakesgamesinc.itch.io/celesteclassic?utm_source=chatgpt.com", img: "/celeste.PNG", genre: "Platformer" },
   { name: "Line Rider", url: "https://www.linerider.com/", img: "/linerider.PNG", genre: "Sandbox" },
   { name: "Townscaper", url: "https://oskarstalberg.com/Townscaper/", img: "/townscaper.PNG", genre: "Sandbox" },
-  { name: "Sandspiel", url: "https://sandspiel.club/", img: "/sand.PNG", genre: "Sandbox" },
+  { name: "Sandspiel", url: "https://sandspiel.club/", img: "/sands.png", genre: "Sandbox" },
   { name: "OvO", url: "https://www.mortgagecalculator.org/money-games/ovo/", img: "/ovo.PNG", genre: "Platformer" },
   { name: "Agar.io", url: "https://agar.io/#ffa", img: "/agar.PNG", genre: "IO" },
   { name: "Diep.io", url: "https://diep.io/", img: "/diep.PNG", genre: "IO" },
@@ -363,6 +363,10 @@ function useParticleSettings() {
     const saved = localStorage.getItem('cursorRange');
     return saved ? clamp(Number(saved), 30, 200) : 80;
   });
+  const [cursorInteraction, setCursorInteraction] = useState(() => {
+    const saved = localStorage.getItem('cursorInteraction');
+    return saved ? clamp(Number(saved), -3, 3) : 1;
+  });
 
   // New advanced settings
   const [minSize, setMinSize] = useState(() => {
@@ -397,6 +401,7 @@ function useParticleSettings() {
   useEffect(() => { localStorage.setItem('connectionDistance', String(connectionDistance)); }, [connectionDistance]);
   useEffect(() => { localStorage.setItem('maxConnections', String(maxConnections)); }, [maxConnections]);
   useEffect(() => { localStorage.setItem('cursorRange', String(cursorRange)); }, [cursorRange]);
+  useEffect(() => { localStorage.setItem('cursorInteraction', String(cursorInteraction)); }, [cursorInteraction]);
   useEffect(() => { localStorage.setItem('minSize', String(minSize)); }, [minSize]);
   useEffect(() => { localStorage.setItem('maxSize', String(maxSize)); }, [maxSize]);
   useEffect(() => { localStorage.setItem('particleSpeed', String(speed)); }, [speed]);
@@ -427,6 +432,7 @@ function useParticleSettings() {
     connectionDistance, setConnectionDistance,
     maxConnections, setMaxConnections,
     cursorRange, setCursorRange,
+    cursorInteraction, setCursorInteraction,
     minSize, setMinSize,
     maxSize, setMaxSize,
     speed, setSpeed,
@@ -445,6 +451,7 @@ const ParticleBackground = React.memo(({
   connectionDistance = 170,
   maxConnections = 20,
   cursorRange = 80,
+  cursorInteraction = 1,
   minSize = 2,
   maxSize = 5,
   speed = 1.0,
@@ -487,15 +494,16 @@ const ParticleBackground = React.memo(({
       this.lastConnections = [];
     }
 
-    update(mouse, cursorRange) {
+    update(mouse, cursorRange, cursorInteraction) {
       // Parallax/repulsion from mouse
       const dx = this.x - mouse.x;
       const dy = this.y - mouse.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < cursorRange) {
-        this.x += dx / dist * 1.5;
-        this.y += dy / dist * 1.5;
+      if (dist < cursorRange && dist > 0) {
+        const force = cursorInteraction * 1.5;
+        this.x += dx / dist * force;
+        this.y += dy / dist * force;
       }
 
       // Orbital motion
@@ -596,7 +604,7 @@ const ParticleBackground = React.memo(({
       }
 
       particlesRef.current.forEach(p => {
-        p.update(mouseRef.current, cursorRange);
+        p.update(mouseRef.current, cursorRange, cursorInteraction);
         p.draw(ctx, particlesRef.current, effectiveRef.current.maxConnections, effectiveRef.current.connectionDistance);
       });
 
@@ -657,7 +665,7 @@ const ParticleBackground = React.memo(({
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [particleCount, connectionDistance, maxConnections, cursorRange, minSize, maxSize, speed, particleColor, lineColor, dynamicHue, safeMode, onAutoTuned]);
+  }, [particleCount, connectionDistance, maxConnections, cursorRange, cursorInteraction, minSize, maxSize, speed, particleColor, lineColor, dynamicHue, safeMode, onAutoTuned]);
 
   return <canvas ref={canvasRef} className="particle-background" aria-hidden="true" />;
 });
@@ -1259,6 +1267,8 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
   setMaxConnections,
   cursorRange,
   setCursorRange,
+  cursorInteraction,
+  setCursorInteraction,
   minSize,
   setMinSize,
   maxSize,
@@ -1283,10 +1293,40 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
     connectionDistance,
     maxConnections,
     cursorRange,
+    cursorInteraction,
     minSize,
     maxSize,
     speed,
   });
+  const [previewKey, setPreviewKey] = useState(0);
+
+  // Particle presets for quick selection
+  const presets = [
+    {
+      name: "Minimal",
+      icon: "⚪",
+      description: "Clean and simple",
+      settings: { particleCount: 20, connectionDistance: 120, maxConnections: 8, speed: 0.8, minSize: 1, maxSize: 3 }
+    },
+    {
+      name: "Balanced",
+      icon: "🔵",
+      description: "Perfect harmony",
+      settings: { particleCount: 45, connectionDistance: 170, maxConnections: 20, speed: 1.0, minSize: 2, maxSize: 5 }
+    },
+    {
+      name: "Intense",
+      icon: "🔴",
+      description: "High energy",
+      settings: { particleCount: 80, connectionDistance: 250, maxConnections: 25, speed: 1.5, minSize: 3, maxSize: 7 }
+    },
+    {
+      name: "Cosmic",
+      icon: "⭐",
+      description: "Out of this world",
+      settings: { particleCount: 100, connectionDistance: 300, maxConnections: 30, speed: 2.0, minSize: 4, maxSize: 8 }
+    }
+  ];
 
   useEffect(() => {
     setLocal({
@@ -1294,11 +1334,20 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
       connectionDistance,
       maxConnections,
       cursorRange,
+      cursorInteraction,
       minSize,
       maxSize,
       speed,
     });
-  }, [particleCount, connectionDistance, maxConnections, cursorRange, minSize, maxSize, speed]);
+  }, [particleCount, connectionDistance, maxConnections, cursorRange, cursorInteraction, minSize, maxSize, speed]);
+
+  // Update preview when settings change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPreviewKey(prev => prev + 1);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [particleCount, maxConnections, dynamicHue, particleColor, lineColor, minSize, maxSize]);
 
   const debounceRef = useRef(null);
   const commit = (updates) => {
@@ -1310,10 +1359,23 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
       setConnectionDistance(v.connectionDistance);
       setMaxConnections(v.maxConnections);
       setCursorRange(v.cursorRange);
+      setCursorInteraction(v.cursorInteraction);
       setMinSize(v.minSize);
       setMaxSize(v.maxSize);
       setSpeed(v.speed);
     }, 80);
+  };
+
+  const applyPreset = (preset) => {
+    const { settings } = preset;
+    setLocal(settings);
+    setParticleCount(settings.particleCount);
+    setConnectionDistance(settings.connectionDistance);
+    setMaxConnections(settings.maxConnections);
+    setSpeed(settings.speed);
+    setMinSize(settings.minSize);
+    setMaxSize(settings.maxSize);
+    setPreviewKey(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -1322,6 +1384,7 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
         onClose();
       }
     };
+
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
@@ -1341,6 +1404,7 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
       onClose();
     }
   };
+
 
   if (!isOpen) return null;
 
@@ -1366,71 +1430,266 @@ const ParticleSettingsModal = React.memo(function ParticleSettingsModal({
 
         <div className="modal-header">
           <h3 id="particle-settings-title" style={{ fontWeight: 800, fontSize: 22, marginBottom: 12, textAlign: "center", background: "var(--accent-gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            Particle Settings
+            ✨ Particle Studio
           </h3>
+          <p style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 14, marginBottom: 20 }}>
+            Customize your particle experience
+          </p>
         </div>
-        <form className="modal-form particle-settings-form" style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 6 }}>
-          {[
-            { label: "Particle Count", id: "particle-count", min: 10, max: 120, key: 'particleCount' },
-            { label: "Connection Distance", id: "connection-distance", min: 60, max: 350, key: 'connectionDistance' },
-            { label: "Max Connections", id: "max-connections", min: 1, max: 30, key: 'maxConnections' },
-            { label: "Cursor Range", id: "cursor-range", min: 30, max: 200, key: 'cursorRange' },
-            { label: "Minimum Size", id: "min-size", min: 1, max: 6, key: 'minSize' },
-            { label: "Maximum Size", id: "max-size", min: 3, max: 10, key: 'maxSize' },
-            { label: "Speed", id: "speed", min: 0.2, max: 2.5, step: 0.1, key: 'speed' },
-          ].map(({ label, id, min, max, key, step }) => (
-            <div className="particle-setting-row" key={id}>
-              <label htmlFor={id}>{label}</label>
-              <div className="particle-setting-slider">
-                <input
-                  id={id}
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={step || 1}
-                  value={Number(local[key])}
-                  onChange={e => commit({ [key]: Number(e.target.value) })}
-                  style={{ accentColor: "var(--accent-color)" }}
-                />
-                <span className="particle-setting-value">{Number(local[key])}</span>
+
+        {/* Preset Selection */}
+        <div className="preset-section">
+          <h4 className="section-title">Quick Presets</h4>
+          <div className="preset-grid">
+            {presets.map((preset, index) => (
+              <button
+                key={preset.name}
+                className="preset-card"
+                onClick={() => applyPreset(preset)}
+                type="button"
+              >
+                <div className="preset-icon">{preset.icon}</div>
+                <div className="preset-info">
+                  <div className="preset-name">{preset.name}</div>
+                  <div className="preset-desc">{preset.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Live Preview */}
+        <div className="preview-section">
+          <h4 className="section-title">Live Preview</h4>
+          <div className="particle-preview">
+            <div className="preview-canvas" key={previewKey}>
+              <div className="preview-particles">
+                {Array.from({ length: Math.min(particleCount, 20) }, (_, i) => (
+                  <div
+                    key={`particle-${i}-${previewKey}`}
+                    className="preview-particle"
+                    style={{
+                      left: `${20 + (i * 15) % 60}%`,
+                      top: `${20 + (i * 12) % 60}%`,
+                      width: `${Math.max(2, Math.random() * (maxSize - minSize) + minSize)}px`,
+                      height: `${Math.max(2, Math.random() * (maxSize - minSize) + minSize)}px`,
+                      backgroundColor: dynamicHue ? `hsl(${(i * 18 + previewKey * 0.1) % 360}, 80%, 60%)` : particleColor,
+                      animationDelay: `${i * 0.15}s`,
+                      animationDuration: `${1.5 + Math.random() * 1.5}s`,
+                      boxShadow: `0 0 ${Math.max(4, (Math.random() * (maxSize - minSize) + minSize) * 2)}px currentColor`
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="preview-connections">
+                {Array.from({ length: Math.min(Math.floor(maxConnections / 2), 12) }, (_, i) => {
+                  const startX = 15 + (i * 8) % 70;
+                  const startY = 15 + (i * 10) % 70;
+                  const endX = startX + 20 + Math.random() * 30;
+                  const endY = startY + 15 + Math.random() * 25;
+                  const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+
+                  return (
+                    <div
+                      key={`connection-${i}-${previewKey}`}
+                      className="preview-connection"
+                      style={{
+                        left: `${startX}%`,
+                        top: `${startY}%`,
+                        width: `${distance}%`,
+                        height: '1px',
+                        backgroundColor: dynamicHue ? `hsl(${(i * 25 + previewKey * 0.05) % 360}, 80%, 60%)` : lineColor,
+                        opacity: Math.max(0.3, 1 - (distance / 50)),
+                        transform: `rotate(${Math.atan2(endY - startY, endX - startX) * 180 / Math.PI}deg)`,
+                        transformOrigin: '0 0',
+                        animationDelay: `${i * 0.1}s`,
+                        animationDuration: `${2 + Math.random() * 2}s`
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
-          ))}
+            <div className="preview-info">
+              <span className="preview-label">Current Settings</span>
+              <div className="preview-stats">
+                <span>{particleCount} particles</span>
+                <span>•</span>
+                <span>{maxConnections} max connections</span>
+                <span>•</span>
+                <span>{dynamicHue ? 'Rainbow' : 'Static'} colors</span>
+                <span>•</span>
+                <span>Speed: {speed.toFixed(1)}x</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <div className="particle-setting-row color-row">
-            <label htmlFor="particle-color">Particle Color</label>
-            <div className="color-control">
-              <input id="particle-color" type="color" value={particleColor} onChange={e => setParticleColor(e.target.value)} />
-              <span className="color-value">{particleColor.toUpperCase()}</span>
+        <form className="modal-form particle-settings-form">
+          {/* Main Controls */}
+          <div className="settings-section">
+            <h4 className="section-title">Core Settings</h4>
+            {[
+              { label: "Particle Count", id: "particle-count", min: 10, max: 120, key: 'particleCount', icon: "🔢" },
+              { label: "Connection Distance", id: "connection-distance", min: 60, max: 350, key: 'connectionDistance', icon: "📏" },
+              { label: "Max Connections", id: "max-connections", min: 1, max: 30, key: 'maxConnections', icon: "🔗" },
+              { label: "Cursor Range", id: "cursor-range", min: 30, max: 200, key: 'cursorRange', icon: "🎯" },
+              { label: "Cursor Interaction", id: "cursor-interaction", min: -3, max: 3, key: 'cursorInteraction', icon: "🧲" },
+            ].map(({ label, id, min, max, key, icon }) => (
+              <div className="particle-setting-row" key={id}>
+                <label htmlFor={id}>
+                  <span className="setting-icon">{icon}</span>
+                  {label}
+                  {key === 'cursorInteraction' && (
+                    <div className="setting-description">
+                      <span className="interaction-label">
+                        {local[key] < 0 ? "🧲 Attracts" : local[key] > 0 ? "⚡ Repels" : "🚫 Neutral"}
+                      </span>
+                    </div>
+                  )}
+                </label>
+                <div className="particle-setting-slider">
+                  <input
+                    id={id}
+                    type="range"
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={Number(local[key])}
+                    onChange={e => commit({ [key]: Number(e.target.value) })}
+                    style={{ accentColor: "var(--accent-color)" }}
+                  />
+                  <span className="particle-setting-value">{Number(local[key])}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Visual Settings */}
+          <div className="settings-section">
+            <h4 className="section-title">Visual Style</h4>
+            {[
+              { label: "Minimum Size", id: "min-size", min: 1, max: 6, key: 'minSize', icon: "🔸" },
+              { label: "Maximum Size", id: "max-size", min: 3, max: 10, key: 'maxSize', icon: "🔹" },
+              { label: "Speed", id: "speed", min: 0.2, max: 2.5, step: 0.1, key: 'speed', icon: "⚡" },
+            ].map(({ label, id, min, max, key, step, icon }) => (
+              <div className="particle-setting-row" key={id}>
+                <label htmlFor={id}>
+                  <span className="setting-icon">{icon}</span>
+                  {label}
+                </label>
+                <div className="particle-setting-slider">
+                  <input
+                    id={id}
+                    type="range"
+                    min={min}
+                    max={max}
+                    step={step || 1}
+                    value={Number(local[key])}
+                    onChange={e => commit({ [key]: Number(e.target.value) })}
+                    style={{ accentColor: "var(--accent-color)" }}
+                  />
+                  <span className="particle-setting-value">{Number(local[key])}</span>
+                </div>
+              </div>
+            ))}
+
+            <div className="particle-setting-row color-row">
+              <label htmlFor="particle-color">
+                <span className="setting-icon">🎨</span>
+                Particle Color
+              </label>
+              <div className="color-control">
+                <input id="particle-color" type="color" value={particleColor} onChange={e => setParticleColor(e.target.value)} />
+                <span className="color-value">{particleColor.toUpperCase()}</span>
+              </div>
+            </div>
+
+            <div className="particle-setting-row color-row">
+              <label htmlFor="line-color">
+                <span className="setting-icon">📐</span>
+                Connection Color
+              </label>
+              <div className="color-control">
+                <input id="line-color" type="color" value={lineColor} onChange={e => setLineColor(e.target.value)} />
+                <span className="color-value">{lineColor.toUpperCase()}</span>
+              </div>
             </div>
           </div>
 
-          <div className="particle-setting-row color-row">
-            <label htmlFor="line-color">Connection Color</label>
-            <div className="color-control">
-              <input id="line-color" type="color" value={lineColor} onChange={e => setLineColor(e.target.value)} />
-              <span className="color-value">{lineColor.toUpperCase()}</span>
+          {/* Advanced Options */}
+          <div className="settings-section">
+            <h4 className="section-title">Advanced Options</h4>
+
+            <div className="toggle-group">
+              <div className="modern-toggle">
+                <input
+                  id="dynamic-hue"
+                  type="checkbox"
+                  checked={dynamicHue}
+                  onChange={e => setDynamicHue(e.target.checked)}
+                />
+                <label htmlFor="dynamic-hue" className="toggle-label">
+                  <div className="toggle-content">
+                    <span className="toggle-icon">🌈</span>
+                    <div className="toggle-text">
+                      <div className="toggle-title">Dynamic Rainbow Colors</div>
+                      <div className="toggle-subtitle">Animated color transitions</div>
+                    </div>
+                  </div>
+                  <div className="toggle-switch">
+                    <div className="toggle-thumb"></div>
+                  </div>
+                </label>
+              </div>
+
+              <div className="modern-toggle">
+                <input
+                  id="safe-mode"
+                  type="checkbox"
+                  checked={safeMode}
+                  onChange={e => setSafeMode(e.target.checked)}
+                />
+                <label htmlFor="safe-mode" className="toggle-label">
+                  <div className="toggle-content">
+                    <span className="toggle-icon">🛡️</span>
+                    <div className="toggle-text">
+                      <div className="toggle-title">Performance Safe Mode</div>
+                      <div className="toggle-subtitle">Optimized for smooth performance</div>
+                    </div>
+                  </div>
+                  <div className="toggle-switch">
+                    <div className="toggle-thumb"></div>
+                  </div>
+                </label>
+              </div>
+
+              <div className="modern-toggle">
+                <input
+                  id="particles-enabled"
+                  type="checkbox"
+                  checked={particlesEnabled}
+                  onChange={e => setParticlesEnabled(e.target.checked)}
+                />
+                <label htmlFor="particles-enabled" className="toggle-label">
+                  <div className="toggle-content">
+                    <span className="toggle-icon">✨</span>
+                    <div className="toggle-text">
+                      <div className="toggle-title">Particles Enabled</div>
+                      <div className="toggle-subtitle">Show particle background</div>
+                    </div>
+                  </div>
+                  <div className="toggle-switch">
+                    <div className="toggle-thumb"></div>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
-
-          <div className="particle-setting-row toggle-row">
-            <label htmlFor="dynamic-hue">Dynamic Rainbow Colors</label>
-            <input id="dynamic-hue" type="checkbox" checked={dynamicHue} onChange={e => setDynamicHue(e.target.checked)} />
-          </div>
-
-          <div className="particle-setting-row toggle-row">
-            <label htmlFor="safe-mode">Performance Safe Mode</label>
-            <input id="safe-mode" type="checkbox" checked={safeMode} onChange={e => setSafeMode(e.target.checked)} />
-          </div>
-
-          <div className="particle-setting-row toggle-row">
-            <label htmlFor="particles-enabled">Particles Enabled</label>
-            <input id="particles-enabled" type="checkbox" checked={particlesEnabled} onChange={e => setParticlesEnabled(e.target.checked)} />
           </div>
         </form>
         <div className="modal-footer">
-          <button onClick={resetToDefaults} className="submit-btn ghost" type="button">Reset</button>
-          <button onClick={onClose} className="submit-btn" type="button">Close</button>
+          <button onClick={resetToDefaults} className="submit-btn ghost" type="button">Reset to Defaults</button>
+          <button onClick={onClose} className="submit-btn" type="button">Done</button>
         </div>
       </div>
     </div>
@@ -1472,6 +1731,7 @@ function App() {
     connectionDistance, setConnectionDistance,
     maxConnections, setMaxConnections,
     cursorRange, setCursorRange,
+    cursorInteraction, setCursorInteraction,
     minSize, setMinSize,
     maxSize, setMaxSize,
     speed, setSpeed,
@@ -1613,6 +1873,8 @@ function App() {
         setMaxConnections={setMaxConnections}
         cursorRange={cursorRange}
         setCursorRange={setCursorRange}
+        cursorInteraction={cursorInteraction}
+        setCursorInteraction={setCursorInteraction}
         minSize={minSize}
         setMinSize={setMinSize}
         maxSize={maxSize}
@@ -1639,6 +1901,7 @@ function App() {
           connectionDistance={connectionDistance}
           maxConnections={maxConnections}
           cursorRange={cursorRange}
+          cursorInteraction={cursorInteraction}
           minSize={minSize}
           maxSize={maxSize}
           speed={speed}

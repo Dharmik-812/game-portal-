@@ -2,6 +2,184 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import "./App.css";
 import AuthModal from "./AuthModal";
 
+// ChatbotInterface Component
+const ChatbotInterface = ({ onUnlock }) => {
+  const [messages, setMessages] = useState([
+    { text: "hey, what can i help you with?", sender: 'bot' }
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isPortalOpening, setIsPortalOpening] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+
+    if (!inputText.trim() || isLoading) return;
+
+    // Add user message
+    const newMessages = [...messages, { text: inputText, sender: 'user' }];
+    setMessages(newMessages);
+    setInputText('');
+    setIsLoading(true);
+
+    // Check for unlock keyword (case-insensitive)
+    if (inputText.toLowerCase().includes('avesol')) {
+      // Start portal opening animation
+      setIsPortalOpening(true);
+
+      // Prevent body scroll during animation
+      document.body.classList.add('portal-animating');
+
+      // Wait for animation to complete before hiding
+      setTimeout(() => {
+        setIsVisible(false);
+        // Remove body class after animation
+        document.body.classList.remove('portal-animating');
+        setTimeout(() => onUnlock(), 500);
+      }, 2500);
+
+      return;
+    }
+
+    // Send message to Gemini API
+    try {
+      console.log('Sending to Gemini API:', inputText); // Debug log
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCnYAjRq_3kf5b3jTFQndZmCHmeSVQVijw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: inputText
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        }),
+      });
+
+      console.log('Response status:', response.status); // Debug log
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Gemini Response:', data); // Debug log
+
+        // Extract response from Gemini API
+        let botResponse = "I'm not sure how to respond to that.";
+
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+          botResponse = data.candidates[0].content.parts[0].text;
+          console.log('Extracted response:', botResponse); // Debug log
+        } else if (data.error) {
+          botResponse = `Sorry, there was an error: ${data.error.message || 'Unknown error'}`;
+          console.error('Gemini API Error:', data.error);
+        } else {
+          console.error('Unexpected response format:', data);
+          botResponse = "Sorry, I received an unexpected response format.";
+        }
+
+        // Add bot response
+        setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
+      } else {
+        const errorData = await response.text();
+        console.error('API Error:', response.status, response.statusText, errorData);
+        setMessages(prev => [...prev, { text: `Sorry, I'm having trouble connecting right now. (Error: ${response.status} - ${response.statusText})`, sender: 'bot' }]);
+      }
+    } catch (error) {
+      console.error('Connection Error:', error);
+      setMessages(prev => [...prev, { text: `Connection error: ${error.message}`, sender: 'bot' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <>
+      <div className={`chatbot-container ${isPortalOpening ? 'portal-opening' : ''}`}>
+        <div className="chatbot-header">
+          <h2>AvesAI Assistant</h2>
+          <div className="status-indicator"></div>
+        </div>
+
+        <div className="chatbot-messages">
+          {messages.map((message, index) => (
+            <div key={index} className={`message ${message.sender}`}>
+              <div className="message-content">
+                {message.text}
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <form onSubmit={handleSendMessage} className="chatbot-input-form">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Type your message here..."
+            disabled={isPortalOpening}
+          />
+          <button type="submit" disabled={isPortalOpening || isLoading}>
+            {isLoading ? 'Sending...' : 'Send'}
+          </button>
+        </form>
+      </div>
+
+      {/* Portal effect overlay - Rendered outside to avoid layout interference */}
+      {isPortalOpening && (
+        <div className="portal-effect">
+          <div className="portal-ring"></div>
+          <div className="portal-ring"></div>
+          <div className="portal-ring"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-particle"></div>
+          <div className="energy-wave"></div>
+          <div className="energy-wave"></div>
+          <div className="energy-wave"></div>
+          <div className="glitch-overlay"></div>
+          <div className="scan-lines"></div>
+        </div>
+      )}
+    </>
+  );
+};
+
+
+
 // Moved games data to a separate file (would be imported in a real project)
 const GAMES = [
   { name: "Kour.io", url: "https://kour.io/", img: "/download.jfif", genre: "FPS" },
@@ -1706,6 +1884,8 @@ function App() {
   const [showParticleSettings, setShowParticleSettings] = useState(false);
   const [secretClicks, setSecretClicks] = useState(0);
   const [logoSpinning, setLogoSpinning] = useState(false);
+  const [portalUnlocked, setPortalUnlocked] = useState(false);
+  const [isPortalClosing, setIsPortalClosing] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const { selectedGenre, setSelectedGenre, searchText, setSearchText, genres, filteredGames } = useGameFilter(GAMES);
@@ -1859,267 +2039,325 @@ function App() {
     window.open(directUrl, '_blank', 'noopener,noreferrer');
   }, [secretClicks]);
 
+  // Keyboard shortcut: Ctrl + Shift + A to return to AI chatbot with reverse portal animation
+  useEffect(() => {
+    if (!portalUnlocked) return;
+
+    const handleKeyDown = (e) => {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey; // support Cmd on macOS
+      if (isCtrlOrMeta && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        if (isPortalClosing) return;
+        setIsPortalClosing(true);
+        document.body.classList.add('portal-animating');
+
+        // Wait for reverse animation to finish, then switch back to chatbot
+        setTimeout(() => {
+          setPortalUnlocked(false);
+          setIsPortalClosing(false);
+          document.body.classList.remove('portal-animating');
+        }, 2500);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [portalUnlocked, isPortalClosing]);
+
   return (
     <div className="container">
-      {/* Particle Settings Modal */}
-      <ParticleSettingsModal
-        isOpen={showParticleSettings}
-        onClose={handleParticleSettingsClose}
-        particleCount={particleCount}
-        setParticleCount={setParticleCount}
-        connectionDistance={connectionDistance}
-        setConnectionDistance={setConnectionDistance}
-        maxConnections={maxConnections}
-        setMaxConnections={setMaxConnections}
-        cursorRange={cursorRange}
-        setCursorRange={setCursorRange}
-        cursorInteraction={cursorInteraction}
-        setCursorInteraction={setCursorInteraction}
-        minSize={minSize}
-        setMinSize={setMinSize}
-        maxSize={maxSize}
-        setMaxSize={setMaxSize}
-        speed={speed}
-        setSpeed={setSpeed}
-        particleColor={particleColor}
-        setParticleColor={setParticleColor}
-        lineColor={lineColor}
-        setLineColor={setLineColor}
-        dynamicHue={dynamicHue}
-        setDynamicHue={setDynamicHue}
-        safeMode={safeMode}
-        setSafeMode={setSafeMode}
-        particlesEnabled={particlesEnabled}
-        setParticlesEnabled={setParticlesEnabled}
-        resetToDefaults={resetToDefaults}
-      />
-
-      {/* Enhanced Animated Background */}
-      {!selectedGame && particlesEnabled && (
-        <ParticleBackground
-          particleCount={particleCount}
-          connectionDistance={connectionDistance}
-          maxConnections={maxConnections}
-          cursorRange={cursorRange}
-          cursorInteraction={cursorInteraction}
-          minSize={minSize}
-          maxSize={maxSize}
-          speed={speed}
-          particleColor={particleColor}
-          lineColor={lineColor}
-          dynamicHue={dynamicHue}
-          safeMode={safeMode}
-          onAutoTuned={(eff) => {
-            if (eff && eff.avgFps) {
-              if (Math.random() < 0.1) {
-                showNotification(`Optimized particles for smoothness (~${eff.avgFps} FPS)`, 'info');
-              }
-            }
-          }}
-        />
-      )}
-
-      {/* Loading Screen */}
-      <LoadingScreen isLoading={isLoading} />
-
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="nav-brand">
-          <div className={`logo ${logoSpinning ? 'spin' : ''}`} onClick={handleLogoSecret} title="Click 10 times to unlock a download">
-            <div className="logo-icon">🎮</div>
-          </div>
-          <h1 className="portal-title">
-            <AnimatedText text="Aves" delay={0} />
-            <AnimatedText text="OL" delay={400} className="title-part" />
-          </h1>
-        </div>
-
-        <div className="nav-actions">
-          <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-
-          {user ? (
-            <div className="user-info">
-              <div
-                className="user-avatar"
-                onClick={() => setShowParticleSettings(true)}
-                title="Edit Particle Settings"
-                tabIndex={0}
-                onKeyPress={e => {
-                  if (e.key === 'Enter' || e.key === ' ') setShowParticleSettings(true);
-                }}
-                aria-label="Open particle settings"
-              >
-                {user.username.charAt(0).toUpperCase()}
-                <div className="user-status"></div>
+      {!portalUnlocked ? (
+        <ChatbotInterface onUnlock={() => setPortalUnlocked(true)} />
+      ) : (
+        <>
+          {/* Reverse portal animation overlay when returning to chatbot */}
+          {isPortalClosing && (
+            <>
+              <div className="portal-closing"></div>
+              <div className="portal-effect reverse" aria-hidden="true">
+                <div className="portal-ring"></div>
+                <div className="portal-ring"></div>
+                <div className="portal-ring"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-wave"></div>
+                <div className="energy-wave"></div>
+                <div className="energy-wave"></div>
+                <div className="glitch-overlay"></div>
+                <div className="scan-lines"></div>
               </div>
-              <span className="welcome">Hi, {user.username}</span>
-              <button onClick={handleLogout} className="logout-btn">
-                <span>Logout</span>
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => handleAuthShow('login')} className="login-btn">
-              <span>Login</span>
-            </button>
+            </>
           )}
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="main-content">
-        {/* Hero Section */}
-        <section className="hero-section">
-          <div className="hero-content">
-            <h2>
-              <AnimatedText text="Play Free Online Games" delay={200} effect="fadeIn" />
-            </h2>
-            <p>
-              <AnimatedText text="Discover the best web games across all genres" delay={600} effect="fadeIn" />
-            </p>
-            <div className="search-container">
-              <input
-                type="text"
-                placeholder="Search games..."
-                value={searchText}
-                onChange={handleSearchChange}
-                className="search-input"
-                aria-label="Search games"
-              />
-              <div className="search-icon">🔍</div>
-            </div>
-          </div>
-        </section>
-
-        {/* Genre Filters */}
-        <section className="genre-section">
-          <h3>Popular Categories</h3>
-          <GenreFilter
-            genres={genres}
-            selectedGenre={selectedGenre}
-            onSelect={setSelectedGenre}
+          {/* Particle Settings Modal */}
+          <ParticleSettingsModal
+            isOpen={showParticleSettings}
+            onClose={handleParticleSettingsClose}
+            particleCount={particleCount}
+            setParticleCount={setParticleCount}
+            connectionDistance={connectionDistance}
+            setConnectionDistance={setConnectionDistance}
+            maxConnections={maxConnections}
+            setMaxConnections={setMaxConnections}
+            cursorRange={cursorRange}
+            setCursorRange={setCursorRange}
+            cursorInteraction={cursorInteraction}
+            setCursorInteraction={setCursorInteraction}
+            minSize={minSize}
+            setMinSize={setMinSize}
+            maxSize={maxSize}
+            setMaxSize={setMaxSize}
+            speed={speed}
+            setSpeed={setSpeed}
+            particleColor={particleColor}
+            setParticleColor={setParticleColor}
+            lineColor={lineColor}
+            setLineColor={setLineColor}
+            dynamicHue={dynamicHue}
+            setDynamicHue={setDynamicHue}
+            safeMode={safeMode}
+            setSafeMode={setSafeMode}
+            particlesEnabled={particlesEnabled}
+            setParticlesEnabled={setParticlesEnabled}
+            resetToDefaults={resetToDefaults}
           />
-        </section>
 
-        {/* Sort Options */}
-        <div className="sort-options">
-          <label htmlFor="sort-select" className="sort-label">
-            <span className="sort-icon">⇅</span> Sort by:
-          </label>
-          <div className="sort-select-wrapper">
-            <select
-              id="sort-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort games by"
-              className="sort-select"
-            >
-              <option value="popular">Most Popular</option>
-              <option value="newest">Newest</option>
-              <option value="alphabetical">A-Z</option>
-              <option value="favorites">Favorites</option>
-              <option value="trending">Trending</option>
-            </select>
-            <span className="sort-dropdown-arrow">▼</span>
-          </div>
-        </div>
-
-        {/* Games Grid */}
-        <section className="games-section">
-          <div className="section-header">
-            <h3>{selectedGenre === "All" ? "All Games" : selectedGenre + " Games"}</h3>
-            <span className="games-count">{sortedGames.length} games</span>
-          </div>
-
-          {sortedGames.length > 0 ? (
-            <div className="games-grid">
-              {sortedGames.map((game, index) => (
-                <GameCard
-                  key={game.name}
-                  game={game}
-                  onSelect={handleGameSelect}
-                  isSelected={selectedGame?.name === game.name}
-                  index={index}
-                  isFavorite={favorites.some(f => f.name === game.name)}
-                  onToggleFavorite={toggleFavorite}
-                  user={user}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>No games found matching your criteria</p>
-            </div>
+          {/* Enhanced Animated Background */}
+          {!selectedGame && particlesEnabled && !isPortalClosing && (
+            <ParticleBackground
+              particleCount={particleCount}
+              connectionDistance={connectionDistance}
+              maxConnections={maxConnections}
+              cursorRange={cursorRange}
+              cursorInteraction={cursorInteraction}
+              minSize={minSize}
+              maxSize={maxSize}
+              speed={speed}
+              particleColor={particleColor}
+              lineColor={lineColor}
+              dynamicHue={dynamicHue}
+              safeMode={safeMode}
+              onAutoTuned={(eff) => {
+                if (eff && eff.avgFps) {
+                  if (Math.random() < 0.1) {
+                    showNotification(`Optimized particles for smoothness (~${eff.avgFps} FPS)`, 'info');
+                  }
+                }
+              }}
+            />
           )}
-        </section>
 
-        {/* Stats Panel */}
-        {user && (
-          <>
-            <StatsPanel
-              gameStats={gameStats}
-              gameHistory={gameHistory}
-              favorites={favorites}
-              achievements={achievements}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-              <button className="logout-btn" onClick={resetAllStats} title="Clear your local play history and stats">Reset Stats</button>
-            </div>
-            <PlayerProfile
-              user={user}
-              gameHistory={gameHistory}
-              favorites={favorites}
-              achievements={achievements}
-            />
-          </>
-        )}
-      </main>
+          {/* Loading Screen */}
+          <LoadingScreen isLoading={isLoading} />
 
-      {/* Game View Overlay */}
-      <GameView
-        game={selectedGame}
-        onClose={handleGameClose}
-        isOpen={!!selectedGame}
-        trackGamePlay={trackGamePlay}
-        endCurrentSession={endCurrentSession}
-      />
+          {/* Portal content wrapper with smooth fade on close */}
+          <div className={`portal-view ${isPortalClosing ? 'fading-out' : ''}`} aria-hidden={isPortalClosing} style={{ pointerEvents: isPortalClosing ? 'none' : undefined }}>
+            {/* Navbar */}
+            <nav className="navbar">
+              <div className="nav-brand">
+                <div className={`logo ${logoSpinning ? 'spin' : ''}`} onClick={handleLogoSecret} title="Click 10 times to unlock a download">
+                  <div className="logo-icon">🎮</div>
+                </div>
+                <h1 className="portal-title">
+                  <AnimatedText text="Aves" delay={0} />
+                  <AnimatedText text="OL" delay={400} className="title-part" />
+                </h1>
+              </div>
 
-      {/* Auth Modal */}
-      {showAuth && (
-        <AuthModal
-          onClose={handleAuthClose}
-          onLogin={handleLogin}
-          mode={authMode}
-          setMode={setAuthMode}
-        />
-      )}
+              <div className="nav-actions">
+                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      {/* Footer */}
-      <footer className="app-footer">
-        <div className="footer-content">
-          <p>AvesOL © {new Date().getFullYear()} | Play Free Online Games</p>
-          <div className="footer-links">
-            <a href="#">Terms</a>
-            <a href="#">Privacy</a>
-            <a href="#">Support</a>
+                {user ? (
+                  <div className="user-info">
+                    <div
+                      className="user-avatar"
+                      onClick={() => setShowParticleSettings(true)}
+                      title="Edit Particle Settings"
+                      tabIndex={0}
+                      onKeyPress={e => {
+                        if (e.key === 'Enter' || e.key === ' ') setShowParticleSettings(true);
+                      }}
+                      aria-label="Open particle settings"
+                    >
+                      {user.username.charAt(0).toUpperCase()}
+                      <div className="user-status"></div>
+                    </div>
+                    <span className="welcome">Hi, {user.username}</span>
+                    <button onClick={handleLogout} className="logout-btn">
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => handleAuthShow('login')} className="login-btn">
+                    <span>Login</span>
+                  </button>
+                )}
+              </div>
+            </nav>
+
+            {/* Main Content */}
+            <main className="main-content">
+              {/* Hero Section */}
+              <section className="hero-section">
+                <div className="hero-content">
+                  <h2>
+                    <AnimatedText text="Play Free Online Games" delay={200} effect="fadeIn" />
+                  </h2>
+                  <p>
+                    <AnimatedText text="Discover the best web games across all genres" delay={600} effect="fadeIn" />
+                  </p>
+                  <div className="search-container">
+                    <input
+                      type="text"
+                      placeholder="Search games..."
+                      value={searchText}
+                      onChange={handleSearchChange}
+                      className="search-input"
+                      aria-label="Search games"
+                    />
+                    <div className="search-icon">🔍</div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Genre Filters */}
+              <section className="genre-section">
+                <h3>Popular Categories</h3>
+                <GenreFilter
+                  genres={genres}
+                  selectedGenre={selectedGenre}
+                  onSelect={setSelectedGenre}
+                />
+              </section>
+
+              {/* Sort Options */}
+              <div className="sort-options">
+                <label htmlFor="sort-select" className="sort-label">
+                  <span className="sort-icon">⇅</span> Sort by:
+                </label>
+                <div className="sort-select-wrapper">
+                  <select
+                    id="sort-select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    aria-label="Sort games by"
+                    className="sort-select"
+                  >
+                    <option value="popular">Most Popular</option>
+                    <option value="newest">Newest</option>
+                    <option value="alphabetical">A-Z</option>
+                    <option value="favorites">Favorites</option>
+                    <option value="trending">Trending</option>
+                  </select>
+                  <span className="sort-dropdown-arrow">▼</span>
+                </div>
+              </div>
+
+              {/* Games Grid */}
+              <section className="games-section">
+                <div className="section-header">
+                  <h3>{selectedGenre === "All" ? "All Games" : selectedGenre + " Games"}</h3>
+                  <span className="games-count">{sortedGames.length} games</span>
+                </div>
+
+                {sortedGames.length > 0 ? (
+                  <div className="games-grid">
+                    {sortedGames.map((game, index) => (
+                      <GameCard
+                        key={game.name}
+                        game={game}
+                        onSelect={handleGameSelect}
+                        isSelected={selectedGame?.name === game.name}
+                        index={index}
+                        isFavorite={favorites.some(f => f.name === game.name)}
+                        onToggleFavorite={toggleFavorite}
+                        user={user}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p>No games found matching your criteria</p>
+                  </div>
+                )}
+              </section>
+
+              {/* Stats Panel */}
+              {user && (
+                <>
+                  <StatsPanel
+                    gameStats={gameStats}
+                    gameHistory={gameHistory}
+                    favorites={favorites}
+                    achievements={achievements}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                    <button className="logout-btn" onClick={resetAllStats} title="Clear your local play history and stats">Reset Stats</button>
+                  </div>
+                  <PlayerProfile
+                    user={user}
+                    gameHistory={gameHistory}
+                    favorites={favorites}
+                    achievements={achievements}
+                  />
+                </>
+              )}
+            </main>
+
+            {/* Game View Overlay */
+              <GameView
+                game={selectedGame}
+                onClose={handleGameClose}
+                isOpen={!!selectedGame}
+                trackGamePlay={trackGamePlay}
+                endCurrentSession={endCurrentSession}
+              />
+
+          }{/* Auth Modal */}
+            {showAuth && (
+              <AuthModal
+                onClose={handleAuthClose}
+                onLogin={handleLogin}
+                mode={authMode}
+                setMode={setAuthMode}
+              />
+            )}
+
+            {/* Footer */}
+            <footer className="app-footer">
+              <div className="footer-content">
+                <p>AvesOL © {new Date().getFullYear()} | Play Free Online Games</p>
+                <div className="footer-links">
+                  <a href="#">Terms</a>
+                  <a href="#">Privacy</a>
+                  <a href="#">Support</a>
+                </div>
+                <button
+                  className="download-secret-btn"
+                  style={{
+                    opacity: Math.min(secretClicks / 10, 1),
+                    transform: `scale(${0.9 + Math.min(secretClicks / 10, 1) * 0.1})`,
+                    pointerEvents: secretClicks >= 10 ? 'auto' : 'none'
+                  }}
+                  aria-disabled={secretClicks < 10}
+                  title={secretClicks < 10 ? `${10 - secretClicks} more click(s) on the logo to unlock` : 'Download'}
+                  onClick={handleSecretDownload}
+                >
+                  ⬇ Download
+                </button>
+              </div>
+            </footer>
+
           </div>
-          <button
-            className="download-secret-btn"
-            style={{
-              opacity: Math.min(secretClicks / 10, 1),
-              transform: `scale(${0.9 + Math.min(secretClicks / 10, 1) * 0.1})`,
-              pointerEvents: secretClicks >= 10 ? 'auto' : 'none'
-            }}
-            aria-disabled={secretClicks < 10}
-            title={secretClicks < 10 ? `${10 - secretClicks} more click(s) on the logo to unlock` : 'Download'}
-            onClick={handleSecretDownload}
-          >
-            ⬇ Download
-          </button>
-        </div>
-      </footer>
 
-      {/* Notifications */}
-      <NotificationContainer notifications={notifications} />
+          {/* Notifications */}
+          <NotificationContainer notifications={notifications} />
+        </>
+      )}
     </div>
   );
 }

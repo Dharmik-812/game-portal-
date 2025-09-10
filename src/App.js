@@ -2,17 +2,171 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import "./App.css";
 import AuthModal from "./AuthModal";
 
+// Interactive AI Globe 3D-style Background (canvas)
+const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
+  const canvasRef = useRef(null);
+  const frameRef = useRef(0);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const tiltRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+
+    const handleMouseMove = (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const dx = (e.clientX - cx) / cx;
+      const dy = (e.clientY - cy) / cy;
+      mouseRef.current.x = dx;
+      mouseRef.current.y = dy;
+    };
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // Globe params
+    const params = {
+      radius: Math.min(window.innerWidth, window.innerHeight) * 0.22,
+      longLines: 50,
+      latLines: 50,
+      rotation: 65,
+      rotationSpeed: 0.003,
+      ringCount:10,
+    };
+
+    const draw = () => {
+      const { width, height } = canvas;
+      ctx.clearRect(0, 0, width, height);
+
+      // Smooth tilt follow
+      tiltRef.current.x += (mouseRef.current.x - tiltRef.current.x) * 0.05;
+      tiltRef.current.y += (mouseRef.current.y - tiltRef.current.y) * 0.05;
+
+      const cx = width / 2;
+      const cy = height / 2;
+
+      // Background subtle gradient
+      const bgGrad = ctx.createRadialGradient(cx, cy, params.radius * 0.2, cx, cy, Math.max(width, height) * 0.8);
+      bgGrad.addColorStop(0, 'rgba(12,12,28,0.8)');
+      bgGrad.addColorStop(1, 'rgba(0,0,0,0.2)');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Rotate
+      params.rotation += params.rotationSpeed;
+
+      const lineColor = (alpha) => `hsla(265, 90%, 70%, ${alpha})`;
+      const glowColor = (alpha) => `hsla(265, 100%, 70%, ${alpha})`;
+
+      // Glow aura
+      ctx.beginPath();
+      ctx.arc(cx, cy, params.radius * 1.15, 0, Math.PI * 2);
+      ctx.strokeStyle = glowColor(0.08);
+      ctx.lineWidth = 18;
+      ctx.shadowBlur = 40;
+      ctx.shadowColor = glowColor(0.3);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Project 3D sphere lines to 2D with simple tilt
+      const tiltX = tiltRef.current.y * 0.6; // invert for natural feel
+      const tiltY = tiltRef.current.x * 0.6;
+
+      // Latitude lines
+      for (let i = 0; i <= params.latLines; i++) {
+        const lat = -Math.PI / 2 + (i / params.latLines) * Math.PI;
+        const r = Math.cos(lat) * params.radius;
+        const y = Math.sin(lat) * params.radius;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(tiltY);
+        ctx.translate(0, y + tiltX * params.radius * 0.15);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r, r * 0.5 + 0.5 * Math.cos(tiltX), 0, 0, Math.PI * 2);
+        ctx.strokeStyle = lineColor(0.25);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Longitude lines
+      for (let j = 0; j < params.longLines; j++) {
+        const lon = params.rotation + (j / params.longLines) * Math.PI * 2;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(lon + tiltY);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, params.radius, params.radius * 0.5 + 0.5 * Math.cos(tiltX), 0, 0, Math.PI * 2);
+        ctx.strokeStyle = lineColor(j % 2 === 0 ? 0.35 : 0.18);
+        ctx.lineWidth = j % 2 === 0 ? 1.2 : 1;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Orbiting rings and satellites
+      for (let k = 0; k < params.ringCount; k++) {
+        const ringR = params.radius * (1.1 + k * 0.18);
+        const t = params.rotation * (1 + k * 0.2);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(tiltY * (k + 1));
+        ctx.beginPath();
+        ctx.ellipse(0, 0, ringR, ringR * 0.35, t, 0, Math.PI * 2);
+        ctx.strokeStyle = lineColor(0.2);
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 6]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Satellite dot
+        const satAngle = t * 2 + k * 1.3;
+        const sx = Math.cos(satAngle) * ringR;
+        const sy = Math.sin(satAngle) * ringR * 0.35;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3.2 + k * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor(0.85);
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = glowColor(0.8);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+
+      frameRef.current = requestAnimationFrame(draw);
+    };
+
+    frameRef.current = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(frameRef.current);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [accentColor]);
+
+  return <canvas ref={canvasRef} className="ai-globe-background" aria-hidden="true" />;
+});
+
 // ChatbotInterface Component
 const ChatbotInterface = ({ onUnlock }) => {
   const [messages, setMessages] = useState([
-    { text: "hey, what can i help you with?", sender: 'bot' }
+    { text: "hey, what can i help you with? AvesOL hides", sender: 'bot' }
   ]);
   const [inputText, setInputText] = useState('');
-  const [isPortalOpening, setIsPortalOpening] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [attachments, setAttachments] = useState([]); // {id, url, name, type, size}
+  const [regeneratingIndex, setRegeneratingIndex] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const lastUserPromptRef = useRef('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,33 +188,38 @@ const ChatbotInterface = ({ onUnlock }) => {
     if (!inputText.trim() || isLoading) return;
 
     // Add user message
-    const newMessages = [...messages, { text: inputText, sender: 'user' }];
+    const userMessage = {
+      text: inputText,
+      sender: 'user',
+      attachments: attachments.length ? attachments.map(a => ({ url: a.url, name: a.name, type: a.type })) : undefined,
+    };
+    const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    lastUserPromptRef.current = inputText;
     setInputText('');
+    setAttachments([]);
+
+    // AvesOL keyword handling (case/format insensitive)
+    try {
+      const normalized = String(userMessage.text || '')
+        .toLowerCase()
+        .replace(/[^a-z]/g, '');
+      if (normalized.includes('avesol')) {
+        onUnlock && onUnlock();
+        return;
+      }
+    } catch (_) { /* ignore */ }
+
     setIsLoading(true);
 
-    // Check for unlock keyword (case-insensitive)
-    if (inputText.toLowerCase().includes('avesol')) {
-      // Start portal opening animation
-      setIsPortalOpening(true);
-
-      // Prevent body scroll during animation
-      document.body.classList.add('portal-animating');
-
-      // Wait for animation to complete before hiding
-      setTimeout(() => {
-        setIsVisible(false);
-        // Remove body class after animation
-        document.body.classList.remove('portal-animating');
-        setTimeout(() => onUnlock(), 500);
-      }, 2500);
-
-      return;
-    }
+    // Build prompt with attachment context (text-only fallback)
+    const attachmentNote = userMessage.attachments?.length
+      ? "\n\n[Attached images: " + userMessage.attachments.map(a => a.name).join(', ') + "]"
+      : '';
 
     // Send message to Gemini API
     try {
-      console.log('Sending to Gemini API:', inputText); // Debug log
+      console.log('Sending to Gemini API:', inputText + attachmentNote); // Debug log
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCnYAjRq_3kf5b3jTFQndZmCHmeSVQVijw`, {
         method: 'POST',
@@ -70,7 +229,7 @@ const ChatbotInterface = ({ onUnlock }) => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: inputText
+              text: inputText + attachmentNote
             }]
           }],
           generationConfig: {
@@ -117,11 +276,153 @@ const ChatbotInterface = ({ onUnlock }) => {
     }
   };
 
-  if (!isVisible) return null;
+  const handleRegenerateAt = useCallback(async (botIndex) => {
+    if (isLoading) return;
+    // find nearest previous user prompt
+    let prevUserIndex = -1;
+    for (let i = botIndex - 1; i >= 0; i--) {
+      if (messages[i].sender === 'user') { prevUserIndex = i; break; }
+    }
+    if (prevUserIndex === -1) return;
+    const prevUserMsg = messages[prevUserIndex];
+    const attachmentNote = prevUserMsg.attachments?.length
+      ? "\n\n[Attached images: " + prevUserMsg.attachments.map(a => a.name).join(', ') + "]"
+      : '';
+
+    setRegeneratingIndex(botIndex);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCnYAjRq_3kf5b3jTFQndZmCHmeSVQVijw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prevUserMsg.text + attachmentNote }] }],
+          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        let botResponse = "I'm not sure how to respond to that.";
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+          botResponse = data.candidates[0].content.parts[0].text;
+        }
+        setMessages(prev => prev.map((m, idx) => idx === botIndex ? { text: botResponse, sender: 'bot' } : m));
+      } else {
+        const errorData = await response.text();
+        setMessages(prev => prev.map((m, idx) => idx === botIndex ? { text: `Sorry, I'm having trouble regenerating. (${response.status} ${response.statusText})`, sender: 'bot' } : m));
+        console.error('Regen error:', errorData);
+      }
+    } catch (error) {
+      console.error('Regen connection error:', error);
+      setMessages(prev => prev.map((m, idx) => idx === botIndex ? { text: `Connection error: ${error.message}`, sender: 'bot' } : m));
+    } finally {
+      setIsLoading(false);
+      setRegeneratingIndex(null);
+    }
+  }, [isLoading, messages]);
+
+  const handleEditPrompt = useCallback((userIndex) => {
+    const msg = messages[userIndex];
+    if (!msg || msg.sender !== 'user') return;
+    setMessages(prev => prev.slice(0, userIndex));
+    setInputText(msg.text || '');
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, [messages]);
+
+  // Removed inline regenerate-from-user action (kept direct bot regenerate)
+
+  const handleFiles = useCallback((fileList) => {
+    const maxFiles = 4;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'));
+    const trimmed = files.slice(0, Math.max(0, maxFiles - attachments.length));
+    const accepted = trimmed.filter(f => f.size <= maxSize);
+    const mapped = accepted.map(f => ({
+      id: Math.random().toString(36).slice(2),
+      url: URL.createObjectURL(f),
+      name: f.name,
+      type: f.type,
+      size: f.size,
+    }));
+    if (mapped.length) setAttachments(prev => [...prev, ...mapped]);
+  }, [attachments.length]);
+
+  const handlePaste = useCallback((e) => {
+    if (!e.clipboardData) return;
+    const files = e.clipboardData.files;
+    if (files && files.length) {
+      handleFiles(files);
+    }
+  }, [handleFiles]);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.addEventListener('paste', handlePaste);
+    return () => el.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
+  const removeAttachment = useCallback((id) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  // Removed global regenerate button handler as not used in UI
+
+  const renderFormattedMessage = useCallback((text) => {
+    const autoLink = (str) => {
+      const urlRegex = /(https?:\/\/[^\s)]+)|(www\.[^\s)]+)/gi;
+      const parts = String(str).split(urlRegex);
+      return parts.map((part, i) => {
+        if (!part) return null;
+        const isUrl = /^(https?:\/\/|www\.)/i.test(part);
+        if (isUrl) {
+          const href = part.startsWith('http') ? part : `https://${part}`;
+          return <a key={`u-${i}`} href={href} target="_blank" rel="noopener noreferrer">{part}</a>;
+        }
+        return <React.Fragment key={`t-${i}`}>{part}</React.Fragment>;
+      });
+    };
+
+    const paragraphs = String(text || '').trim().split(/\n{2,}/);
+    return paragraphs.map((para, pIdx) => {
+      const lines = para.split(/\n/);
+
+      // Detect bullet list if most lines start with '- '
+      const bulletLines = lines.filter(l => /^\s*[-•]\s+/.test(l)).length;
+      const isList = bulletLines >= Math.max(2, Math.floor(lines.length * 0.6));
+
+      if (isList) {
+        return (
+          <ul key={`ul-${pIdx}`}>
+            {lines.map((line, liIdx) => (
+              /^\s*[-•]\s+/.test(line) ? (
+                <li key={`li-${pIdx}-${liIdx}`}>{autoLink(line.replace(/^\s*[-•]\s+/, ''))}</li>
+              ) : null
+            ))}
+          </ul>
+        );
+      }
+
+      return (
+        <p key={`p-${pIdx}`}>
+          {lines.map((line, i) => (
+            <React.Fragment key={`l-${pIdx}-${i}`}>
+              {autoLink(line)}
+              {i < lines.length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </p>
+      );
+    });
+  }, []);
 
   return (
     <>
-      <div className={`chatbot-container ${isPortalOpening ? 'portal-opening' : ''}`}>
+      <div className={`chatbot-container`}>
+        {/* New interactive 3D globe background */}
+        <AIGlobeBackground />
         <div className="chatbot-header">
           <h2>AvesAI Assistant</h2>
           <div className="status-indicator"></div>
@@ -129,51 +430,89 @@ const ChatbotInterface = ({ onUnlock }) => {
 
         <div className="chatbot-messages">
           {messages.map((message, index) => (
-            <div key={index} className={`message ${message.sender}`}>
-              <div className="message-content">
-                {message.text}
+            <div key={index} className={`message-row ${message.sender}`}>
+              <div className={`message ${message.sender}`}>
+                <div className="message-content">
+                  {regeneratingIndex === index && isLoading ? (
+                    <div className="typing">
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                    </div>
+                  ) : (
+                    renderFormattedMessage(message.text)
+                  )}
+                  {message.attachments?.length ? (
+                    <div className="msg-attachments">
+                      {message.attachments.map((a, i) => (
+                        <img key={`att-${i}`} src={a.url} alt={a.name || `attachment-${i}`} className="msg-attachment-thumb" />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
+              {message.sender === 'user' ? (
+                <div className="msg-actions below user">
+                  <button type="button" className="chat-icon-btn" title="Edit this prompt" onClick={() => handleEditPrompt(index)}>✎</button>
+                </div>
+              ) : (
+                <div className="msg-actions below bot">
+                  <button type="button" className="chat-icon-btn" title="Regenerate this response" onClick={() => handleRegenerateAt(index)} disabled={isLoading || regeneratingIndex === index}>⟳</button>
+                </div>
+              )}
             </div>
           ))}
+          {isLoading && regeneratingIndex === null && (
+            <div className="message bot">
+              <div className="message-content typing">
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
+        {attachments.length > 0 && (
+          <div className="attachment-previews above-input">
+            {attachments.map(att => (
+              <div key={att.id} className="attachment-chip">
+                <img src={att.url} alt={att.name} />
+                <button type="button" className="remove-att" onClick={() => removeAttachment(att.id)}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <form onSubmit={handleSendMessage} className="chatbot-input-form">
+          <button
+            className="chat-icon-btn"
+            type="button"
+            title="Attach images"
+            onClick={() => fileInputRef.current?.click()}
+          >📎</button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
           <input
             ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Type your message here..."
-            disabled={isPortalOpening}
+            disabled={false}
           />
-          <button type="submit" disabled={isPortalOpening || isLoading}>
+          <button type="submit" disabled={isLoading}>
             {isLoading ? 'Sending...' : 'Send'}
           </button>
         </form>
       </div>
-
-      {/* Portal effect overlay - Rendered outside to avoid layout interference */}
-      {isPortalOpening && (
-        <div className="portal-effect">
-          <div className="portal-ring"></div>
-          <div className="portal-ring"></div>
-          <div className="portal-ring"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-particle"></div>
-          <div className="energy-wave"></div>
-          <div className="energy-wave"></div>
-          <div className="energy-wave"></div>
-          <div className="glitch-overlay"></div>
-          <div className="scan-lines"></div>
-        </div>
-      )}
     </>
   );
 };
@@ -325,6 +664,55 @@ const useUserData = () => {
     return icons[id] || '🎨';
   }, []);
 
+  const unlockAchievement = useCallback((id, title) => {
+    setAchievements(prevAchievements => {
+      if (prevAchievements[id]) return prevAchievements;
+
+      const newAchievements = {
+        ...prevAchievements,
+        [id]: {
+          title,
+          unlockedAt: new Date().toISOString(),
+          icon: getAchievementIcon(id)
+        }
+      };
+
+      localStorage.setItem('gameAchievements', JSON.stringify(newAchievements));
+      showNotification(`🏆 Achievement Unlocked: ${title}`, 'achievement');
+
+      return newAchievements;
+    });
+  }, [getAchievementIcon, showNotification]);
+
+  const checkFavoriteAchievements = useCallback((favCount) => {
+    const achievements = {
+      first_favorite: { count: 1, title: 'First Favorite Added!' },
+      favorite_collector: { count: 5, title: 'Favorite Collector' },
+      favorite_enthusiast: { count: 10, title: 'Favorite Enthusiast' }
+    };
+
+    Object.entries(achievements).forEach(([id, data]) => {
+      if (favCount === data.count) {
+        unlockAchievement(id, data.title);
+      }
+    });
+  }, [unlockAchievement]);
+
+  const checkPlayAchievements = useCallback((playCount) => {
+    const achievements = {
+      first_play: { count: 1, title: 'First Game Played!' },
+      gaming_rookie: { count: 5, title: 'Gaming Rookie' },
+      gaming_enthusiast: { count: 10, title: 'Gaming Enthusiast' },
+      gaming_veteran: { count: 25, title: 'Gaming Veteran' }
+    };
+
+    Object.entries(achievements).forEach(([id, data]) => {
+      if (playCount === data.count) {
+        unlockAchievement(id, data.title);
+      }
+    });
+  }, [unlockAchievement]);
+
   const toggleFavorite = useCallback((game) => {
     setFavorites(prevFavorites => {
       const isFavorite = prevFavorites.some(f => f.name === game.name);
@@ -346,7 +734,7 @@ const useUserData = () => {
 
       return newFavorites;
     });
-  }, [showNotification]);
+  }, [showNotification, checkFavoriteAchievements]);
 
   const updateGameStats = useCallback((gameName, genre) => {
     setGameStats(prevStats => {
@@ -405,7 +793,7 @@ const useUserData = () => {
 
     // Check for achievements
     checkPlayAchievements(gameHistory.length + 1);
-  }, [gameHistory.length, updateGameStats]);
+  }, [gameHistory.length, updateGameStats, checkPlayAchievements]);
 
   const endCurrentSession = useCallback(() => {
     const sessionId = currentSessionIdRef.current;
@@ -427,54 +815,8 @@ const useUserData = () => {
     };
   }, []);
 
-  const checkFavoriteAchievements = useCallback((favCount) => {
-    const achievements = {
-      first_favorite: { count: 1, title: 'First Favorite Added!' },
-      favorite_collector: { count: 5, title: 'Favorite Collector' },
-      favorite_enthusiast: { count: 10, title: 'Favorite Enthusiast' }
-    };
 
-    Object.entries(achievements).forEach(([id, data]) => {
-      if (favCount === data.count) {
-        unlockAchievement(id, data.title);
-      }
-    });
-  }, []);
 
-  const checkPlayAchievements = useCallback((playCount) => {
-    const achievements = {
-      first_play: { count: 1, title: 'First Game Played!' },
-      gaming_rookie: { count: 5, title: 'Gaming Rookie' },
-      gaming_enthusiast: { count: 10, title: 'Gaming Enthusiast' },
-      gaming_veteran: { count: 25, title: 'Gaming Veteran' }
-    };
-
-    Object.entries(achievements).forEach(([id, data]) => {
-      if (playCount === data.count) {
-        unlockAchievement(id, data.title);
-      }
-    });
-  }, []);
-
-  const unlockAchievement = useCallback((id, title) => {
-    setAchievements(prevAchievements => {
-      if (prevAchievements[id]) return prevAchievements;
-
-      const newAchievements = {
-        ...prevAchievements,
-        [id]: {
-          title,
-          unlockedAt: new Date().toISOString(),
-          icon: getAchievementIcon(id)
-        }
-      };
-
-      localStorage.setItem('gameAchievements', JSON.stringify(newAchievements));
-      showNotification(`🏆 Achievement Unlocked: ${title}`, 'achievement');
-
-      return newAchievements;
-    });
-  }, [getAchievementIcon, showNotification]);
 
   const loginUser = useCallback((userData) => {
     setUser(userData);
@@ -749,7 +1091,6 @@ const ParticleBackground = React.memo(({
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
@@ -852,17 +1193,17 @@ ParticleBackground.displayName = 'ParticleBackground';
 
 // Optimized Floating Elements with performance improvements
 const FloatingElements = React.memo(() => {
-  const emojis = ['🎮', '👾', '🕹️', '🎯', '🎲'];
-  const elements = useMemo(() =>
-    [...Array(8)].map((_, i) => ({
+  const elements = useMemo(() => {
+    const emojis = ['🎮', '👾', '🕹️', '🎯', '🎲'];
+    return [...Array(8)].map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
       delay: `${Math.random() * 5}s`,
       duration: `${15 + Math.random() * 15}s`,
       size: `${Math.random() * 15 + 10}px`,
       emoji: emojis[i % 5]
-    })),
-    []);
+    }));
+  }, []);
 
   return (
     <div className="floating-elements" aria-hidden="true">
@@ -1399,17 +1740,103 @@ const PlayerProfile = React.memo(({ user, gameHistory, favorites, achievements }
 PlayerProfile.displayName = 'PlayerProfile';
 
 // LoadingScreen Component
-const LoadingScreen = React.memo(({ isLoading }) => {
+const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
+  const [progress, setProgress] = useState(0);
+  const [currentMessage, setCurrentMessage] = useState(0);
+  const progressRef = useRef(null);
+  const messages = [
+    "Initializing AvesOL...",
+    "Loading game database...",
+    "Preparing AI assistant...",
+    "Almost ready..."
+  ];
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    let progressInterval;
+    let messageInterval;
+
+    const startLoading = () => {
+      setProgress(0);
+      setCurrentMessage(0);
+
+      // Simulate progress
+      progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(progressInterval);
+            if (onAnimationComplete) onAnimationComplete();
+            return 100;
+          }
+          return prev + Math.random() * 5;
+        });
+      }, 100);
+
+      // Cycle through messages
+      messageInterval = setInterval(() => {
+        setCurrentMessage(prev => (prev + 1) % messages.length);
+      }, 2000);
+    };
+
+    startLoading();
+
+    return () => {
+      clearInterval(progressInterval);
+      clearInterval(messageInterval);
+    };
+  }, [isLoading, messages.length, onAnimationComplete]);
+
   if (!isLoading) return null;
 
   return (
     <div className="loading-screen">
-      <div className="loader">
-        <div className="loader-spinner">
-          <div className="loader-orb"></div>
+      <div className="loading-container">
+        {/* Animated background elements */}
+        <div className="loading-background">
+          <div className="bg-blobs" aria-hidden="true">
+            <div className="blob"></div>
+            <div className="blob"></div>
+            <div className="blob"></div>
+            <div className="blob"></div>
+          </div>
+          <div className="bg-stars" aria-hidden="true">
+            {Array.from({ length: 40 }).map((_, i) => (
+              <span key={i} className="star" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${(Math.random() * 2).toFixed(2)}s` }} />
+            ))}
+          </div>
         </div>
-        <div className="loader-text">
-          <AnimatedText text="Initializing AvesOL..." delay={0} />
+
+        {/* Content */}
+        <div className="loading-content">
+          <div className="logo-container">
+            <div className="logo-icon">🎮</div>
+            <h1 className="logo-text">
+              <span className="logo-aves">Aves</span>
+              <span className="logo-ol">OL</span>
+            </h1>
+          </div>
+
+          <div className="progress-container">
+            <div className="progress-text">
+              <span className="progress-percent">{Math.round(progress)}%</span>
+              <span className="progress-message">{messages[currentMessage]}</span>
+            </div>
+
+            <div className="progress-bar">
+              <div
+                ref={progressRef}
+                className="progress-fill"
+                style={{ width: `${progress}%` }}
+              ></div>
+              <div className="progress-glow"></div>
+            </div>
+          </div>
+
+          <div className="loading-hint">
+            <span className="hint-icon">💡</span>
+            <span>Say "AvesOL" to the AI assistant to unlock the portal</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1886,6 +2313,7 @@ function App() {
   const [logoSpinning, setLogoSpinning] = useState(false);
   const [portalUnlocked, setPortalUnlocked] = useState(false);
   const [isPortalClosing, setIsPortalClosing] = useState(false);
+  const [isPortalOpening, setIsPortalOpening] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const { selectedGenre, setSelectedGenre, searchText, setSearchText, genres, filteredGames } = useGameFilter(GAMES);
@@ -1975,17 +2403,12 @@ function App() {
     // Set initial theme
     document.documentElement.setAttribute('data-theme', theme);
 
-    // Add page load animation
+    // Add page load animation; will be removed when LoadingScreen completes
     document.body.classList.add('page-loading');
 
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
+    return () => {
       document.body.classList.remove('page-loading');
-      document.body.classList.add('page-loaded');
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    };
   }, [theme]);
 
   const handleLogin = useCallback((userData) => {
@@ -2065,8 +2488,52 @@ function App() {
 
   return (
     <div className="container">
+      {/* Global loading screen for both chatbot and portal views */}
+      <LoadingScreen
+        isLoading={isLoading}
+        onAnimationComplete={() => {
+          setIsLoading(false);
+          document.body.classList.remove('page-loading');
+          document.body.classList.add('page-loaded');
+        }}
+      />
       {!portalUnlocked ? (
-        <ChatbotInterface onUnlock={() => setPortalUnlocked(true)} />
+        <>
+          {/* Opening portal overlay when going from chatbot to portal */}
+          {isPortalOpening && (
+            <>
+              <div className="portal-opening"></div>
+              <div className="portal-effect" aria-hidden="true">
+                <div className="portal-ring"></div>
+                <div className="portal-ring"></div>
+                <div className="portal-ring"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-particle"></div>
+                <div className="energy-wave"></div>
+                <div className="energy-wave"></div>
+                <div className="energy-wave"></div>
+                <div className="glitch-overlay"></div>
+                <div className="scan-lines"></div>
+              </div>
+            </>
+          )}
+          <ChatbotInterface onUnlock={() => {
+            if (isPortalOpening) return;
+            setIsPortalOpening(true);
+            document.body.classList.add('portal-animating');
+            setTimeout(() => {
+              setPortalUnlocked(true);
+              setIsPortalOpening(false);
+              document.body.classList.remove('portal-animating');
+            }, 2500);
+          }} />
+        </>
       ) : (
         <>
           {/* Reverse portal animation overlay when returning to chatbot */}
@@ -2151,8 +2618,7 @@ function App() {
             />
           )}
 
-          {/* Loading Screen */}
-          <LoadingScreen isLoading={isLoading} />
+
 
           {/* Portal content wrapper with smooth fade on close */}
           <div className={`portal-view ${isPortalClosing ? 'fading-out' : ''}`} aria-hidden={isPortalClosing} style={{ pointerEvents: isPortalClosing ? 'none' : undefined }}>
@@ -2308,16 +2774,16 @@ function App() {
               )}
             </main>
 
-            {/* Game View Overlay */
-              <GameView
-                game={selectedGame}
-                onClose={handleGameClose}
-                isOpen={!!selectedGame}
-                trackGamePlay={trackGamePlay}
-                endCurrentSession={endCurrentSession}
-              />
+            {/* Game View Overlay */}
+            <GameView
+              game={selectedGame}
+              onClose={handleGameClose}
+              isOpen={!!selectedGame}
+              trackGamePlay={trackGamePlay}
+              endCurrentSession={endCurrentSession}
+            />
 
-          }{/* Auth Modal */}
+            {/* Auth Modal */}
             {showAuth && (
               <AuthModal
                 onClose={handleAuthClose}
@@ -2332,9 +2798,9 @@ function App() {
               <div className="footer-content">
                 <p>AvesOL © {new Date().getFullYear()} | Play Free Online Games</p>
                 <div className="footer-links">
-                  <a href="#">Terms</a>
-                  <a href="#">Privacy</a>
-                  <a href="#">Support</a>
+                  <a href="/terms" onClick={(e) => e.preventDefault()}>Terms</a>
+                  <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy</a>
+                  <a href="/support" onClick={(e) => e.preventDefault()}>Support</a>
                 </div>
                 <button
                   className="download-secret-btn"

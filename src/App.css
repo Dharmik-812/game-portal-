@@ -508,7 +508,7 @@ body.portal-animating {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2000; /* Above chatbot/portal content so animation is visible */
   background: transparent;
   overflow: hidden;
   transform: translateZ(0);
@@ -848,7 +848,7 @@ body.portal-animating {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  z-index: 1000;
+  z-index: 2000; /* Keep above chatbot during opening */
 }
 
 /* Reverse container animation when closing portal (returning to chatbot) */
@@ -858,7 +858,7 @@ body.portal-animating {
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 1000;
+  z-index: 2000; /* Above portal content during closing */
   pointer-events: none;
   animation: containerPortalReveal 2.5s ease-in-out reverse forwards;
 }
@@ -1349,8 +1349,8 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -2;
-  opacity: 0.6;
+  z-index: 1500; /* Above portal animations; canvas itself won’t dim UI now */
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -1484,16 +1484,19 @@ body {
 }
 
 .logo {
-  width: 40px;
-  height: 40px;
-  background: var(--accent-gradient);
-  border-radius: 10px;
+  width: 12px; /* smaller emoji icon size */
+  height: 12px;
+  background: transparent;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(110, 59, 206, 0.3);
+  line-height: 1;
+  margin-right: 6px;
+  color: var(--accent-color);
   transition: var(--transition-smooth);
 }
+
 
 .logo:hover {
   transform: rotate(8deg) scale(1.05);
@@ -1518,7 +1521,8 @@ body {
 }
 
 .logo-icon {
-  font-size: 16px;
+  font-size: 9px; /* sized to fit 12x12 container closely */
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1662,6 +1666,30 @@ body {
 
 .login-btn:hover,
 .logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(110, 59, 206, 0.3);
+}
+
+/* Particle Settings Button */
+.particle-settings-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.particle-settings-btn:hover {
+  background: var(--accent-gradient);
+  border-color: transparent;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(110, 59, 206, 0.3);
 }
@@ -2223,7 +2251,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000; /* Above portal effects and particle canvas */
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   animation: fadeIn 0.3s ease;
@@ -2769,12 +2797,12 @@ body {
   }
 
   .logo {
-    width: 36px;
-    height: 36px;
+    width: 12px;
+    height: 12px;
   }
 
   .logo-icon {
-    font-size: 18px;
+    font-size: 9px;
   }
 
 
@@ -2858,12 +2886,12 @@ body {
   }
 
   .logo {
-    width: 32px;
-    height: 32px;
+    width: 12px;
+    height: 12px;
   }
 
   .logo-icon {
-    font-size: 16px;
+    font-size: 9px;
   }
 
 
@@ -2995,12 +3023,12 @@ body {
   }
 
   .logo {
-    width: 28px;
-    height: 28px;
+    width: 12px;
+    height: 12px;
   }
 
   .logo-icon {
-    font-size: 14px;
+    font-size: 9px;
   }
 
 
@@ -3222,12 +3250,12 @@ body {
   }
 
   .logo {
-    width: 24px;
-    height: 24px;
+    width: 10px;
+    height: 10px;
   }
 
   .logo-icon {
-    font-size: 12px;
+    font-size: 8px; /* extra small screens */
   }
 
   .logo-icon svg {
@@ -4639,10 +4667,10 @@ select:focus,
   }
 }
 
-/* Performance improvements for mobile */
-@media (max-width: 1024px) {
+/* Performance improvements for mobile - only hide on very small screens */
+@media (max-width: 480px) {
   .particle-background {
-    display: none;
+    opacity: 0.3; /* Keep particles but make them more subtle on small screens */
   }
 
   .floating-elements {

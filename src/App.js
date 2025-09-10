@@ -617,7 +617,8 @@ const useGameFilter = (games) => {
 // Custom hook for user data management
 const useUserData = () => {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('gameUser');
+    const remember = localStorage.getItem('rememberLogin') === 'true';
+    const savedUser = remember ? localStorage.getItem('gameUser') : null;
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
@@ -821,14 +822,21 @@ const useUserData = () => {
 
 
 
-  const loginUser = useCallback((userData) => {
+  const loginUser = useCallback((userData, remember = false) => {
     setUser(userData);
-    localStorage.setItem('gameUser', JSON.stringify(userData));
+    if (remember) {
+      localStorage.setItem('gameUser', JSON.stringify(userData));
+      localStorage.setItem('rememberLogin', 'true');
+    } else {
+      localStorage.removeItem('gameUser');
+      localStorage.setItem('rememberLogin', 'false');
+    }
   }, []);
 
   const logoutUser = useCallback(() => {
     setUser(null);
     localStorage.removeItem('gameUser');
+    localStorage.removeItem('rememberLogin');
 
     // Clear active timers
     Object.values(activeTimersRef.current).forEach(timer => {
@@ -1118,8 +1126,8 @@ const ParticleBackground = React.memo(({
     };
 
     const animate = () => {
-      ctx.fillStyle = 'rgba(15, 15, 35, 0.18)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Clear frame fully so canvas doesn’t tint/dim underlying UI
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       // slight global hue shift for a subtle animated palette
       if (dynamicHue) {
         hueShiftRef.current = (hueShiftRef.current + 0.3) % 360;
@@ -1757,11 +1765,9 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
 
   useEffect(() => {
     if (!isLoading) {
-      console.log('LoadingScreen: isLoading is false, returning early');
       return;
     }
 
-    console.log('LoadingScreen: Starting loading animation');
     setProgress(1); // Start with 1% to ensure visibility
     setCurrentMessage(0);
     startTimeRef.current = Date.now();
@@ -1775,14 +1781,11 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
         const increment = Math.random() * 15 + 5; // 5-20% increments
         const newProgress = Math.min(prev + increment, 100);
 
-        console.log(`Progress: ${prev.toFixed(1)}% -> ${newProgress.toFixed(1)}%`);
 
         if (newProgress >= 100) {
           clearInterval(progressInterval);
-          console.log('Loading complete!');
           setTimeout(() => {
             if (onAnimationComplete) {
-              console.log('Calling onAnimationComplete');
               onAnimationComplete();
             }
           }, 500);
@@ -1798,7 +1801,6 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
     }, 2000);
 
     return () => {
-      console.log('LoadingScreen: Cleaning up intervals');
       if (progressInterval) clearInterval(progressInterval);
       if (messageInterval) clearInterval(messageInterval);
     };
@@ -2449,8 +2451,8 @@ function App() {
     };
   }, [theme]);
 
-  const handleLogin = useCallback((userData) => {
-    loginUser(userData);
+  const handleLogin = useCallback((userData, remember = false) => {
+    loginUser(userData, remember);
     showNotification(`Welcome back, ${userData.username}!`, 'success');
   }, [loginUser, showNotification]);
 
@@ -2532,16 +2534,12 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [portalUnlocked, isPortalClosing]);
 
-  console.log('App render: isLoading =', isLoading);
 
   // Ensure loading starts properly
   useEffect(() => {
-    console.log('App useEffect: isLoading changed to', isLoading);
     if (isLoading) {
-      console.log('App: Setting up loading state');
       document.body.classList.add('page-loading');
     } else {
-      console.log('App: Loading complete, removing loading state');
       document.body.classList.remove('page-loading');
       document.body.classList.add('page-loaded');
     }
@@ -2553,7 +2551,6 @@ function App() {
       <LoadingScreen
         isLoading={isLoading}
         onAnimationComplete={useCallback(() => {
-          console.log('App: onAnimationComplete called');
           setIsLoading(false);
         }, [])}
       />
@@ -2654,7 +2651,7 @@ function App() {
           />
 
           {/* Enhanced Animated Background */}
-          {!selectedGame && particlesEnabled && !isPortalClosing && (
+          {!selectedGame && particlesEnabled && (
             <ParticleBackground
               particleCount={particleCount}
               connectionDistance={connectionDistance}
@@ -2680,14 +2677,12 @@ function App() {
 
 
           {/* Portal content wrapper with smooth fade on close */}
-          <div className={`portal-container ${isPortalClosing ? 'fading-out' : ''}`} aria-hidden={isPortalClosing} style={{ pointerEvents: isPortalClosing ? 'none' : undefined }}>
+          <div className={`portal-container ${isPortalClosing ? 'fading-out' : ''}`} aria-hidden={isPortalClosing}>
             {/* Navbar */}
             <nav className="navbar">
               <div className="nav-brand">
                 <div className={`logo ${logoSpinning ? 'spin' : ''}`} onClick={handleLogoSecret} title="Click 10 times to unlock a download">
-                  <div className="logo-icon">
-                    🎮
-                  </div>
+                  <div className="logo-icon">🎮</div>
                 </div>
                 <h1 className="portal-title">
                   <AnimatedText text="Aves" delay={0} />

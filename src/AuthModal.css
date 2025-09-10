@@ -7,9 +7,10 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* allow space for scroll */
     justify-content: center;
-    z-index: 1000;
+    padding: 20px 10px; /* page padding so scrollbar doesn’t hide content */
+    z-index: 5000; /* Ensure login modal is above particles and all overlays */
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     animation: authFadeIn 0.3s ease;
@@ -21,7 +22,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8); /* more opaque so particles don’t show through */
 }
 
 .auth-modal-content {
@@ -30,13 +31,14 @@
     padding: 30px;
     width: 90%;
     max-width: 450px;
+    max-height: 90vh; /* allow scrolling */
+    overflow-y: auto;  /* show scrollbar when needed */
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     position: relative;
     border: 1px solid var(--border-color);
     animation: authModalAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     transform: scale(0.95);
     opacity: 0;
-    overflow: hidden;
 }
 
 .auth-modal-content::before {

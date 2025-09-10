@@ -14,6 +14,21 @@
   /* Force hardware acceleration */
 }
 
+/* ====== PORTAL INTERFACE STYLES ====== */
+.portal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  color: var(--text-primary);
+  overflow-y: auto;
+}
+
 /* AI Globe canvas layering */
 .ai-globe-background {
   position: fixed;
@@ -1504,6 +1519,14 @@ body {
 
 .logo-icon {
   font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .portal-title {
@@ -2756,6 +2779,11 @@ body {
     font-size: 18px;
   }
 
+  .logo-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .portal-title {
     font-size: 20px;
   }
@@ -2842,6 +2870,11 @@ body {
 
   .logo-icon {
     font-size: 16px;
+  }
+
+  .logo-icon svg {
+    width: 16px;
+    height: 16px;
   }
 
   .portal-title {
@@ -2969,6 +3002,11 @@ body {
 
   .logo-icon {
     font-size: 14px;
+  }
+
+  .logo-icon svg {
+    width: 14px;
+    height: 14px;
   }
 
   .portal-title {
@@ -3197,6 +3235,11 @@ body {
     font-size: 12px;
   }
 
+  .logo-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
   .portal-title {
     font-size: 14px;
   }
@@ -3275,6 +3318,10 @@ body {
   }
 
   .chatbot-container {
+    height: 100dvh;
+  }
+
+  .portal-container {
     height: 100dvh;
   }
 
@@ -4421,6 +4468,14 @@ select:focus,
 .logo-icon {
   font-size: 4rem;
   filter: drop-shadow(0 0 10px rgba(140, 82, 255, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon svg {
+  width: 4rem;
+  height: 4rem;
 }
 
 .logo-text {
@@ -4546,6 +4601,11 @@ select:focus,
 
   .logo-icon {
     font-size: 3rem;
+  }
+
+  .logo-icon svg {
+    width: 3rem;
+    height: 3rem;
   }
 
   .logo-text {

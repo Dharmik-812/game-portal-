@@ -17,12 +17,20 @@ export const ResponsiveGrid = ({
             const containerWidth = responsive.screenSize.width;
             const availableWidth = containerWidth - (responsive.getSpacing() * 2); // Account for padding
             const itemWidth = Math.max(minItemWidth, responsive.getImageSize(minItemWidth));
-            const columns = Math.floor(availableWidth / (itemWidth + gap));
-            const actualColumns = Math.max(1, Math.min(columns, children.length));
+
+            // More responsive column calculation
+            let columns;
+            if (responsive.isMobile) {
+                columns = Math.max(1, Math.floor(availableWidth / (itemWidth + gap)));
+            } else if (responsive.isTablet) {
+                columns = Math.max(2, Math.floor(availableWidth / (itemWidth + gap)));
+            } else {
+                columns = Math.max(3, Math.floor(availableWidth / (itemWidth + gap)));
+            }
 
             setGridStyle({
                 display: 'grid',
-                gridTemplateColumns: `repeat(${actualColumns}, 1fr)`,
+                gridTemplateColumns: `repeat(auto-fit, minmax(${itemWidth}px, 1fr))`,
                 gap: `${responsive.getSpacing(gap)}px`,
                 width: '100%',
             });

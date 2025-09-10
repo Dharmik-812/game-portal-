@@ -11,7 +11,7 @@ export const DynamicImage = ({
 }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
-    const responsive = useResponsive();
+    // const responsive = useResponsive(); // Not used in this component
 
     const imageStyle = useMemo(() => ({
         width: '100%',
@@ -210,17 +210,7 @@ export const AdaptiveSearch = ({
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={handleBlur}
                 placeholder={placeholder}
-                style={{
-                    width: '100%',
-                    padding: responsive.isMobile ? '10px 12px' : '12px 16px',
-                    fontSize: `${responsive.getFontSize(14)}px`,
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    background: 'var(--card-bg)',
-                    color: 'var(--text-primary)',
-                    outline: 'none',
-                    transition: 'border-color 0.2s ease'
-                }}
+                className="search-input"
                 {...props}
             />
 

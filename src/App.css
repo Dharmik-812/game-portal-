@@ -4463,15 +4463,18 @@ select:focus,
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #8c52ff, #5ce1e6);
   border-radius: 3px;
-  transition: width 0.3s ease;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 2;
+  min-width: 0;
+  box-shadow: 0 0 10px rgba(140, 82, 255, 0.5);
 }
 
 .progress-glow {

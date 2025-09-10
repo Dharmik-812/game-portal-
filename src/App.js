@@ -1747,6 +1747,7 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
   const [progress, setProgress] = useState(0);
   const [currentMessage, setCurrentMessage] = useState(0);
   const progressRef = useRef(null);
+  const startTimeRef = useRef(null);
   const messages = [
     "Initializing AvesOL...",
     "Loading game database...",
@@ -1759,22 +1760,52 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
 
     let progressInterval;
     let messageInterval;
+    let animationFrame;
+    let fallbackTimeout;
 
     const startLoading = () => {
       setProgress(0);
       setCurrentMessage(0);
+      startTimeRef.current = Date.now();
 
-      // Simulate progress
-      progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
+      // Use requestAnimationFrame for smoother progress
+      const updateProgress = () => {
+        const elapsed = Date.now() - startTimeRef.current;
+        const duration = 3000; // 3 seconds total loading time
+        const baseProgress = Math.min((elapsed / duration) * 100, 100);
+
+        // Add some randomness to make it feel more natural
+        const randomFactor = Math.sin(elapsed / 200) * 2;
+        const finalProgress = Math.min(Math.max(baseProgress + randomFactor, 0), 100);
+
+        setProgress(finalProgress);
+
+        // Debug log to verify progress is working
+        if (Math.floor(finalProgress) % 10 === 0) {
+          console.log(`Loading progress: ${Math.floor(finalProgress)}%`);
+        }
+
+        if (finalProgress < 100) {
+          animationFrame = requestAnimationFrame(updateProgress);
+        } else {
+          // Loading complete
+          console.log('Loading complete!');
+          setTimeout(() => {
             if (onAnimationComplete) onAnimationComplete();
-            return 100;
-          }
-          return prev + Math.random() * 5;
-        });
-      }, 100);
+          }, 300);
+        }
+      };
+
+      // Start the progress animation
+      animationFrame = requestAnimationFrame(updateProgress);
+
+      // Fallback: ensure progress completes even if animation fails
+      fallbackTimeout = setTimeout(() => {
+        setProgress(100);
+        setTimeout(() => {
+          if (onAnimationComplete) onAnimationComplete();
+        }, 300);
+      }, 4000); // 4 second fallback
 
       // Cycle through messages
       messageInterval = setInterval(() => {
@@ -1785,10 +1816,12 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
     startLoading();
 
     return () => {
-      clearInterval(progressInterval);
-      clearInterval(messageInterval);
+      if (progressInterval) clearInterval(progressInterval);
+      if (messageInterval) clearInterval(messageInterval);
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
-  }, [isLoading, messages.length, onAnimationComplete]);
+  }, [isLoading, onAnimationComplete]);
 
   if (!isLoading) return null;
 

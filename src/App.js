@@ -1756,70 +1756,51 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
   ];
 
   useEffect(() => {
-    if (!isLoading) return;
+    if (!isLoading) {
+      console.log('LoadingScreen: isLoading is false, returning early');
+      return;
+    }
+
+    console.log('LoadingScreen: Starting loading animation');
+    setProgress(1); // Start with 1% to ensure visibility
+    setCurrentMessage(0);
+    startTimeRef.current = Date.now();
 
     let progressInterval;
     let messageInterval;
-    let animationFrame;
-    let fallbackTimeout;
 
-    const startLoading = () => {
-      setProgress(0);
-      setCurrentMessage(0);
-      startTimeRef.current = Date.now();
+    // Simple interval-based progress for reliability
+    progressInterval = setInterval(() => {
+      setProgress(prev => {
+        const increment = Math.random() * 15 + 5; // 5-20% increments
+        const newProgress = Math.min(prev + increment, 100);
 
-      // Use requestAnimationFrame for smoother progress
-      const updateProgress = () => {
-        const elapsed = Date.now() - startTimeRef.current;
-        const duration = 3000; // 3 seconds total loading time
-        const baseProgress = Math.min((elapsed / duration) * 100, 100);
+        console.log(`Progress: ${prev.toFixed(1)}% -> ${newProgress.toFixed(1)}%`);
 
-        // Add some randomness to make it feel more natural
-        const randomFactor = Math.sin(elapsed / 200) * 2;
-        const finalProgress = Math.min(Math.max(baseProgress + randomFactor, 0), 100);
-
-        setProgress(finalProgress);
-
-        // Debug log to verify progress is working
-        if (Math.floor(finalProgress) % 10 === 0) {
-          console.log(`Loading progress: ${Math.floor(finalProgress)}%`);
-        }
-
-        if (finalProgress < 100) {
-          animationFrame = requestAnimationFrame(updateProgress);
-        } else {
-          // Loading complete
+        if (newProgress >= 100) {
+          clearInterval(progressInterval);
           console.log('Loading complete!');
           setTimeout(() => {
-            if (onAnimationComplete) onAnimationComplete();
-          }, 300);
+            if (onAnimationComplete) {
+              console.log('Calling onAnimationComplete');
+              onAnimationComplete();
+            }
+          }, 500);
+          return 100;
         }
-      };
+        return newProgress;
+      });
+    }, 200); // Update every 200ms
 
-      // Start the progress animation
-      animationFrame = requestAnimationFrame(updateProgress);
-
-      // Fallback: ensure progress completes even if animation fails
-      fallbackTimeout = setTimeout(() => {
-        setProgress(100);
-        setTimeout(() => {
-          if (onAnimationComplete) onAnimationComplete();
-        }, 300);
-      }, 4000); // 4 second fallback
-
-      // Cycle through messages
-      messageInterval = setInterval(() => {
-        setCurrentMessage(prev => (prev + 1) % messages.length);
-      }, 2000);
-    };
-
-    startLoading();
+    // Cycle through messages
+    messageInterval = setInterval(() => {
+      setCurrentMessage(prev => (prev + 1) % messages.length);
+    }, 2000);
 
     return () => {
+      console.log('LoadingScreen: Cleaning up intervals');
       if (progressInterval) clearInterval(progressInterval);
       if (messageInterval) clearInterval(messageInterval);
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
   }, [isLoading, onAnimationComplete]);
 
@@ -1858,12 +1839,19 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
               <span className="progress-percent">{Math.round(progress)}%</span>
               <span className="progress-message">{messages[currentMessage]}</span>
             </div>
+            {/* Debug info */}
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
+              Debug: Progress = {progress.toFixed(2)}%, isLoading = {isLoading.toString()}
+            </div>
 
             <div className="progress-bar">
               <div
                 ref={progressRef}
                 className="progress-fill"
-                style={{ width: `${progress}%` }}
+                style={{
+                  width: `${progress}%`,
+                  minWidth: progress > 0 ? '2px' : '0px' // Ensure visibility
+                }}
               ></div>
               <div className="progress-glow"></div>
             </div>
@@ -2538,16 +2526,30 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [portalUnlocked, isPortalClosing]);
 
+  console.log('App render: isLoading =', isLoading);
+
+  // Ensure loading starts properly
+  useEffect(() => {
+    console.log('App useEffect: isLoading changed to', isLoading);
+    if (isLoading) {
+      console.log('App: Setting up loading state');
+      document.body.classList.add('page-loading');
+    } else {
+      console.log('App: Loading complete, removing loading state');
+      document.body.classList.remove('page-loading');
+      document.body.classList.add('page-loaded');
+    }
+  }, [isLoading]);
+
   return (
     <ResponsiveLayout className="container">
       {/* Global loading screen for both chatbot and portal views */}
       <LoadingScreen
         isLoading={isLoading}
-        onAnimationComplete={() => {
+        onAnimationComplete={useCallback(() => {
+          console.log('App: onAnimationComplete called');
           setIsLoading(false);
-          document.body.classList.remove('page-loading');
-          document.body.classList.add('page-loaded');
-        }}
+        }, [])}
       />
       {!portalUnlocked ? (
         <>

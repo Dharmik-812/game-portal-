@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import "./App.css";
 import AuthModal from "./AuthModal";
+import { useResponsive, useAdaptiveUI } from "./hooks/useResponsive";
+import { ResponsiveLayout, ResponsiveGrid, AdaptiveContainer, ResponsiveText, ResponsiveButton, ResponsiveModal } from "./components/ResponsiveLayout";
+import { AdaptiveSearch, DynamicImage, DynamicLoading } from "./components/DynamicContent";
 
 // Interactive AI Globe 3D-style Background (canvas)
 const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
@@ -38,7 +41,7 @@ const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
       latLines: 50,
       rotation: 65,
       rotationSpeed: 0.003,
-      ringCount:10,
+      ringCount: 10,
     };
 
     const draw = () => {
@@ -2315,6 +2318,10 @@ function App() {
   const [isPortalClosing, setIsPortalClosing] = useState(false);
   const [isPortalOpening, setIsPortalOpening] = useState(false);
 
+  // Responsive hooks
+  const responsive = useResponsive();
+  const uiConfig = useAdaptiveUI();
+
   const { theme, toggleTheme } = useTheme();
   const { selectedGenre, setSelectedGenre, searchText, setSearchText, genres, filteredGames } = useGameFilter(GAMES);
   const {
@@ -2333,7 +2340,7 @@ function App() {
     resetAllStats
   } = useUserData();
 
-  // Particle settings hook
+  // Particle settings hook with responsive optimizations
   const {
     particleCount, setParticleCount,
     connectionDistance, setConnectionDistance,
@@ -2350,6 +2357,18 @@ function App() {
     particlesEnabled, setParticlesEnabled,
     resetToDefaults,
   } = useParticleSettings();
+
+  // Apply responsive particle optimizations
+  useEffect(() => {
+    if (uiConfig.performance?.reducedParticles && particlesEnabled) {
+      // Reduce particle count on mobile devices
+      if (responsive.isMobile && particleCount > 30) {
+        setParticleCount(30);
+      } else if (responsive.isTablet && particleCount > 50) {
+        setParticleCount(50);
+      }
+    }
+  }, [responsive.isMobile, responsive.isTablet, uiConfig.performance?.reducedParticles, particlesEnabled, particleCount, setParticleCount]);
 
   const sortGames = useCallback((games) => {
     const sortedGames = [...games];
@@ -2487,7 +2506,7 @@ function App() {
   }, [portalUnlocked, isPortalClosing]);
 
   return (
-    <div className="container">
+    <ResponsiveLayout className="container">
       {/* Global loading screen for both chatbot and portal views */}
       <LoadingScreen
         isLoading={isLoading}
@@ -2666,24 +2685,38 @@ function App() {
             </nav>
 
             {/* Main Content */}
-            <main className="main-content">
+            <AdaptiveContainer className="main-content">
               {/* Hero Section */}
               <section className="hero-section">
                 <div className="hero-content">
-                  <h2>
+                  <ResponsiveText
+                    as="h2"
+                    size="3xl"
+                    weight="bold"
+                    style={{ marginBottom: '12px' }}
+                  >
                     <AnimatedText text="Play Free Online Games" delay={200} effect="fadeIn" />
-                  </h2>
-                  <p>
+                  </ResponsiveText>
+                  <ResponsiveText
+                    size="lg"
+                    style={{ marginBottom: '25px', color: 'var(--text-secondary)' }}
+                  >
                     <AnimatedText text="Discover the best web games across all genres" delay={600} effect="fadeIn" />
-                  </p>
+                  </ResponsiveText>
                   <div className="search-container">
-                    <input
-                      type="text"
-                      placeholder="Search games..."
+                    <AdaptiveSearch
                       value={searchText}
-                      onChange={handleSearchChange}
+                      onChange={setSearchText}
+                      placeholder="Search games..."
+                      suggestions={genres.map(g => g.name)}
+                      onSuggestionSelect={(suggestion) => {
+                        setSelectedGenre(suggestion);
+                        setSearchText('');
+                      }}
                       className="search-input"
-                      aria-label="Search games"
+                      style={{
+                        position: 'relative'
+                      }}
                     />
                     <div className="search-icon">🔍</div>
                   </div>
@@ -2726,12 +2759,23 @@ function App() {
               {/* Games Grid */}
               <section className="games-section">
                 <div className="section-header">
-                  <h3>{selectedGenre === "All" ? "All Games" : selectedGenre + " Games"}</h3>
+                  <ResponsiveText
+                    as="h3"
+                    size="xl"
+                    weight="bold"
+                    style={{ margin: 0 }}
+                  >
+                    {selectedGenre === "All" ? "All Games" : selectedGenre + " Games"}
+                  </ResponsiveText>
                   <span className="games-count">{sortedGames.length} games</span>
                 </div>
 
                 {sortedGames.length > 0 ? (
-                  <div className="games-grid">
+                  <ResponsiveGrid
+                    minItemWidth={responsive.getImageSize(200)}
+                    gap={responsive.getSpacing(20)}
+                    className="games-grid"
+                  >
                     {sortedGames.map((game, index) => (
                       <GameCard
                         key={game.name}
@@ -2742,12 +2786,16 @@ function App() {
                         isFavorite={favorites.some(f => f.name === game.name)}
                         onToggleFavorite={toggleFavorite}
                         user={user}
+                        responsive={responsive}
+                        uiConfig={uiConfig}
                       />
                     ))}
-                  </div>
+                  </ResponsiveGrid>
                 ) : (
                   <div className="empty-state">
-                    <p>No games found matching your criteria</p>
+                    <ResponsiveText size="lg" style={{ textAlign: 'center', margin: 0 }}>
+                      No games found matching your criteria
+                    </ResponsiveText>
                   </div>
                 )}
               </section>
@@ -2772,7 +2820,7 @@ function App() {
                   />
                 </>
               )}
-            </main>
+            </AdaptiveContainer>
 
             {/* Game View Overlay */}
             <GameView
@@ -2824,7 +2872,7 @@ function App() {
           <NotificationContainer notifications={notifications} />
         </>
       )}
-    </div>
+    </ResponsiveLayout>
   );
 }
 

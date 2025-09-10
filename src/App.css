@@ -2576,6 +2576,16 @@ body {
   }
 }
 
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 @keyframes pulse {
 
   0%,
@@ -2611,33 +2621,135 @@ body {
   }
 }
 
-/* ====== RESPONSIVE DESIGN ====== */
-@media (max-width: 1200px) {
+/* ====== ENHANCED RESPONSIVE DESIGN ====== */
+
+/* Mobile First Approach - Base styles for mobile */
+:root {
+  --mobile-padding: 12px;
+  --tablet-padding: 20px;
+  --desktop-padding: 24px;
+  --mobile-font-scale: 0.9;
+  --tablet-font-scale: 1;
+  --desktop-font-scale: 1.1;
+}
+
+/* Extra Large Screens (1400px+) */
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
   .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 24px;
+  }
+
+  .hero-content h2 {
+    font-size: 42px;
+  }
+
+  .main-content {
+    padding: 32px;
   }
 }
 
-@media (max-width: 1024px) {
+/* Large Desktop (1200px - 1399px) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 22px;
+  }
+
+  .hero-content h2 {
+    font-size: 38px;
+  }
+}
+
+/* Desktop (1024px - 1199px) */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+
+  .hero-content h2 {
+    font-size: 34px;
+  }
+
+  .main-content {
+    padding: var(--desktop-padding);
+  }
+}
+
+/* Tablet Landscape (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .navbar {
+    padding: 0 20px;
+    height: 70px;
+  }
+
+  .main-content {
+    padding: var(--tablet-padding);
+  }
+
+  .hero-section {
+    padding: 32px 24px;
+    border-radius: 18px;
+  }
+
   .hero-content h2 {
     font-size: 30px;
+  }
+
+  .hero-content p {
+    font-size: 16px;
   }
 
   .games-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 18px;
   }
+
+  .game-image-container {
+    height: 130px;
+  }
+
+  .search-input {
+    padding: 14px 18px 14px 45px;
+    font-size: 15px;
+  }
+
+  .genre-filters {
+    gap: 10px;
+  }
+
+  .genre-filter {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .modal-content {
+    width: 90%;
+    max-width: 500px;
+  }
+
+  .game-view-container {
+    width: 90%;
+    height: 85%;
+  }
 }
 
-@media (max-width: 768px) {
+/* Tablet Portrait (600px - 767px) */
+@media (min-width: 600px) and (max-width: 767px) {
   .navbar {
-    padding: 0 15px;
+    padding: 0 16px;
     height: 65px;
   }
 
   .logo {
-    width: 35px;
-    height: 35px;
+    width: 36px;
+    height: 36px;
   }
 
   .logo-icon {
@@ -2649,16 +2761,16 @@ body {
   }
 
   .main-content {
-    padding: 15px;
+    padding: 16px;
   }
 
   .hero-section {
-    padding: 30px 20px;
+    padding: 28px 20px;
     border-radius: 16px;
   }
 
   .hero-content h2 {
-    font-size: 26px;
+    font-size: 28px;
   }
 
   .hero-content p {
@@ -2666,13 +2778,22 @@ body {
   }
 
   .search-input {
-    padding: 12px 15px 12px 40px;
+    padding: 13px 16px 13px 42px;
     font-size: 14px;
   }
 
   .search-icon {
-    left: 12px;
+    left: 13px;
     font-size: 15px;
+  }
+
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+
+  .game-image-container {
+    height: 125px;
   }
 
   .genre-filters {
@@ -2684,15 +2805,6 @@ body {
     font-size: 12px;
   }
 
-  .games-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 15px;
-  }
-
-  .game-image-container {
-    height: 120px;
-  }
-
   .welcome {
     display: none;
   }
@@ -2700,55 +2812,53 @@ body {
   .theme-label {
     display: none;
   }
-}
 
-@media (max-width: 640px) {
-  .games-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .modal-content {
+    width: 92%;
+    max-width: 480px;
   }
 
   .game-view-container {
-    width: 95%;
-    height: 80%;
-    border-radius: 12px;
-  }
-
-  .game-view-header {
-    padding: 12px 15px;
-  }
-
-  .game-view-header h2 {
-    font-size: 16px;
-  }
-
-  .close-game-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-  }
-
-  .footer-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-  }
-
-  .footer-links {
-    justify-content: center;
+    width: 92%;
+    height: 82%;
   }
 }
 
-@media (max-width: 480px) {
+/* Mobile Landscape (480px - 599px) */
+@media (min-width: 480px) and (max-width: 599px) {
+  .navbar {
+    padding: 0 14px;
+    height: 60px;
+  }
+
   .nav-brand {
-    gap: 8px;
+    gap: 10px;
+  }
+
+  .logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo-icon {
+    font-size: 16px;
   }
 
   .portal-title {
     font-size: 18px;
   }
 
+  .main-content {
+    padding: 14px;
+  }
+
+  .hero-section {
+    padding: 24px 16px;
+    border-radius: 14px;
+  }
+
   .hero-content h2 {
-    font-size: 22px;
+    font-size: 24px;
   }
 
   .hero-content p {
@@ -2756,12 +2866,186 @@ body {
   }
 
   .search-input {
+    padding: 12px 14px 12px 38px;
+    font-size: 14px;
+  }
+
+  .search-icon {
+    left: 12px;
+    font-size: 14px;
+  }
+
+  .games-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .game-image-container {
+    height: 120px;
+  }
+
+  .genre-filters {
+    gap: 6px;
+  }
+
+  .genre-filter {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .games-count {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .modal-content {
+    width: 94%;
+    max-width: 450px;
+    padding: 18px;
+  }
+
+  .modal-header h2 {
+    font-size: 24px;
+  }
+
+  .game-view-container {
+    width: 94%;
+    height: 80%;
+    border-radius: 12px;
+  }
+
+  .game-view-header {
+    padding: 12px 14px;
+  }
+
+  .game-view-header h2 {
+    font-size: 16px;
+  }
+
+  .close-game-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .footer-links {
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .user-info {
+    display: none;
+  }
+}
+
+/* Mobile Portrait (320px - 479px) */
+@media (max-width: 479px) {
+  .navbar {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .nav-brand {
+    gap: 8px;
+  }
+
+  .logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .logo-icon {
+    font-size: 14px;
+  }
+
+  .portal-title {
+    font-size: 16px;
+  }
+
+  .main-content {
+    padding: var(--mobile-padding);
+  }
+
+  .hero-section {
+    padding: 20px 14px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  .hero-content h2 {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .hero-content p {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  .search-container {
+    max-width: 100%;
+  }
+
+  .search-input {
     padding: 10px 12px 10px 35px;
+    font-size: 13px;
+    border-radius: 20px;
   }
 
   .search-icon {
     left: 10px;
-    font-size: 14px;
+    font-size: 13px;
+  }
+
+  .genre-section {
+    margin-bottom: 20px;
+  }
+
+  .genre-section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .genre-filters {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .genre-filter {
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 16px;
+  }
+
+  .sort-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 12px;
+    margin: 12px 0;
+  }
+
+  .sort-label {
+    font-size: 12px;
+  }
+
+  .sort-select {
+    font-size: 12px;
+    min-width: 100px;
+    padding: 6px 24px 6px 8px;
   }
 
   .games-grid {
@@ -2769,17 +3053,60 @@ body {
     gap: 12px;
   }
 
+  .game-image-container {
+    height: 140px;
+  }
+
+  .game-info {
+    padding: 12px;
+  }
+
+  .game-info h3 {
+    font-size: 14px;
+  }
+
+  .game-genre {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .section-header h3 {
+    font-size: 18px;
+  }
+
+  .games-count {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
   .modal-content {
-    padding: 20px;
-    width: 95%;
+    width: 96%;
+    max-width: 400px;
+    padding: 16px;
+    margin: 10px;
   }
 
   .modal-header h2 {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .modal-header p {
+    font-size: 14px;
   }
 
   .input-field input {
-    padding: 12px 0;
+    padding: 10px 0;
+    font-size: 14px;
+  }
+
+  .input-field label {
     font-size: 14px;
   }
 
@@ -2788,23 +3115,435 @@ body {
     font-size: 14px;
   }
 
+  .game-view-container {
+    width: 96%;
+    height: 75%;
+    border-radius: 10px;
+    margin: 10px;
+  }
+
+  .game-view-header {
+    padding: 10px 12px;
+  }
+
+  .game-view-header h2 {
+    font-size: 14px;
+  }
+
+  .close-game-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .game-frame-container {
+    padding: 8px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .footer-links {
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .footer-links a {
+    font-size: 12px;
+  }
+
+  .download-secret-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
   .user-info {
     display: none;
   }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .login-btn,
+  .logout-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
 }
 
-/* Touch device improvements */
-@media (hover: none) {
+/* Extra Small Mobile (max-width: 320px) */
+@media (max-width: 320px) {
+  .navbar {
+    padding: 0 8px;
+    height: 52px;
+  }
+
+  .nav-brand {
+    gap: 6px;
+  }
+
+  .logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .logo-icon {
+    font-size: 12px;
+  }
+
+  .portal-title {
+    font-size: 14px;
+  }
+
+  .main-content {
+    padding: 8px;
+  }
+
+  .hero-section {
+    padding: 16px 10px;
+    border-radius: 10px;
+  }
+
+  .hero-content h2 {
+    font-size: 20px;
+  }
+
+  .hero-content p {
+    font-size: 12px;
+  }
+
+  .search-input {
+    padding: 8px 10px 8px 30px;
+    font-size: 12px;
+  }
+
+  .search-icon {
+    left: 8px;
+    font-size: 12px;
+  }
+
+  .genre-filter {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .games-grid {
+    gap: 10px;
+  }
+
+  .game-image-container {
+    height: 120px;
+  }
+
+  .game-info {
+    padding: 10px;
+  }
+
+  .game-info h3 {
+    font-size: 13px;
+  }
+
+  .modal-content {
+    width: 98%;
+    padding: 12px;
+    margin: 5px;
+  }
+
+  .game-view-container {
+    width: 98%;
+    height: 70%;
+    margin: 5px;
+  }
+
+  .footer-content {
+    padding: 8px 10px;
+  }
+}
+
+/* ====== DYNAMIC LAYOUT ADJUSTMENTS ====== */
+
+/* Dynamic viewport height handling for mobile browsers */
+@supports (height: 100dvh) {
+  .container {
+    min-height: 100dvh;
+  }
+
+  .chatbot-container {
+    height: 100dvh;
+  }
+
+  .game-view-container {
+    height: 86dvh;
+  }
+}
+
+/* Dynamic font scaling based on viewport */
+@media (max-width: 480px) {
+  :root {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  :root {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 769px) {
+  :root {
+    font-size: 16px;
+  }
+}
+
+/* Dynamic spacing based on screen size */
+.dynamic-spacing {
+  --spacing-xs: clamp(4px, 1vw, 8px);
+  --spacing-sm: clamp(8px, 2vw, 16px);
+  --spacing-md: clamp(12px, 3vw, 24px);
+  --spacing-lg: clamp(16px, 4vw, 32px);
+  --spacing-xl: clamp(24px, 5vw, 48px);
+}
+
+/* Dynamic grid columns based on available space */
+.games-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+@media (min-width: 600px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 50%), 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 33.333%), 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .games-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 25%), 1fr));
+  }
+}
+
+/* ====== MOBILE-SPECIFIC OPTIMIZATIONS ====== */
+
+/* Touch-friendly button sizes */
+@media (max-width: 768px) {
+
+  button,
+  .game-card,
+  .genre-filter,
+  .modal-close {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .favorite-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .close-game-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Improved touch targets for small screens */
+@media (max-width: 480px) {
+  .nav-actions button {
+    padding: 8px 12px;
+    min-height: 40px;
+  }
+
+  .theme-toggle {
+    padding: 8px;
+  }
+
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+  }
+
+  .toggle-thumb {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Mobile navigation improvements */
+@media (max-width: 768px) {
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Mobile modal improvements */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  .modal-content {
+    margin: 0;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+}
+
+/* Mobile game view improvements */
+@media (max-width: 768px) {
+  .game-view-overlay {
+    padding: 5px;
+  }
+
+  .game-view-container {
+    border-radius: 12px;
+  }
+
+  .game-frame-container {
+    border-radius: 8px;
+  }
+}
+
+/* ====== PERFORMANCE OPTIMIZATIONS ====== */
+
+/* Reduce animations on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Optimize for low-end devices */
+@media (max-width: 480px) {
+
+  .particle-background,
+  .background-shapes,
+  .floating-elements {
+    display: none !important;
+  }
+
+  .ai-globe-background {
+    opacity: 0.3;
+  }
+
+  .game-card {
+    will-change: auto;
+  }
+
+  .game-card:hover {
+    transform: none;
+  }
+}
+
+/* ====== ACCESSIBILITY IMPROVEMENTS ====== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: rgba(255, 255, 255, 0.5);
+    --text-secondary: rgba(255, 255, 255, 0.9);
+  }
+
+  .game-card {
+    border: 2px solid var(--border-color);
+  }
+
+  .genre-filter {
+    border: 2px solid var(--border-color);
+  }
+}
+
+/* Focus improvements for keyboard navigation */
+@media (max-width: 768px) {
+
+  button:focus,
+  input:focus,
+  select:focus,
+  .game-card:focus {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 2px;
+  }
+}
+
+/* ====== DYNAMIC CONTENT ADAPTATIONS ====== */
+
+/* Adaptive text sizing */
+@media (max-width: 480px) {
+  .hero-content h2 {
+    line-height: 1.2;
+  }
+
+  .section-header h3 {
+    line-height: 1.3;
+  }
+
+  .game-info h3 {
+    line-height: 1.2;
+  }
+}
+
+/* Adaptive spacing for different content lengths */
+.adaptive-spacing {
+  margin-bottom: clamp(16px, 4vw, 32px);
+}
+
+/* Dynamic image aspect ratios */
+@media (max-width: 480px) {
+  .game-image-container {
+    aspect-ratio: 16/10;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .game-image-container {
+    aspect-ratio: 16/9;
+  }
+}
+
+/* ====== TOUCH DEVICE IMPROVEMENTS ====== */
+@media (hover: none) and (pointer: coarse) {
   .game-card:hover {
     transform: none;
   }
 
   .game-card:active {
     transform: scale(0.98);
+    transition: transform 0.1s ease;
   }
 
   .genre-filter:hover {
     transform: none;
+  }
+
+  .genre-filter:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
   }
 
   .login-btn:hover,
@@ -2812,8 +3551,310 @@ body {
     transform: none;
   }
 
+  .login-btn:active,
+  .logout-btn:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+
   .user-avatar:hover {
     transform: none;
+  }
+
+  .user-avatar:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+
+  /* Remove hover effects on touch devices */
+  .modal-close:hover,
+  .favorite-btn:hover,
+  .close-game-btn:hover {
+    transform: none;
+  }
+
+  .modal-close:active,
+  .favorite-btn:active,
+  .close-game-btn:active {
+    transform: scale(0.9);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* ====== LANDSCAPE ORIENTATION OPTIMIZATIONS ====== */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar {
+    height: 50px;
+  }
+
+  .main-content {
+    padding: 8px 16px;
+  }
+
+  .hero-section {
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .hero-content h2 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .hero-content p {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .search-input {
+    padding: 8px 12px 8px 35px;
+    font-size: 12px;
+  }
+
+  .genre-section {
+    margin-bottom: 12px;
+  }
+
+  .genre-section h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .games-grid {
+    gap: 8px;
+  }
+
+  .game-image-container {
+    height: 80px;
+  }
+
+  .game-info {
+    padding: 8px;
+  }
+
+  .game-info h3 {
+    font-size: 12px;
+  }
+
+  .modal-content {
+    max-height: 90vh;
+  }
+
+  .game-view-container {
+    height: 90vh;
+  }
+}
+
+/* ====== DYNAMIC FEATURES AND ENHANCEMENTS ====== */
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Improved focus management for keyboard navigation */
+*:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Better text selection */
+::selection {
+  background: var(--accent-color);
+  color: white;
+}
+
+::-moz-selection {
+  background: var(--accent-color);
+  color: white;
+}
+
+/* Improved scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--card-bg);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gradient);
+}
+
+/* Dynamic content loading animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dynamic loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg,
+      var(--card-bg) 25%,
+      var(--border-color) 50%,
+      var(--card-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Improved button interactions */
+button,
+.game-card,
+.genre-filter {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active,
+.game-card:active,
+.genre-filter:active {
+  transform: scale(0.98);
+}
+
+/* Dynamic grid improvements */
+.responsive-grid {
+  display: grid;
+  gap: clamp(12px, 3vw, 24px);
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+/* Better mobile touch targets */
+@media (max-width: 768px) {
+
+  .game-card,
+  .genre-filter,
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Improved mobile navigation */
+  .navbar {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* Better mobile modals */
+  .modal-overlay {
+    padding: 10px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: 12px 12px 0 0;
+    max-height: calc(100vh - 20px);
+  }
+}
+
+/* Dynamic theme transitions */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Improved accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: rgba(255, 255, 255, 0.6);
+    --text-secondary: rgba(255, 255, 255, 0.95);
+    --card-bg: rgba(255, 255, 255, 0.1);
+  }
+
+  .game-card,
+  .genre-filter,
+  .modal-content {
+    border: 2px solid var(--border-color);
+  }
+
+  button {
+    border: 2px solid var(--accent-color);
+  }
+}
+
+/* Print styles */
+@media print {
+
+  .navbar,
+  .footer,
+  .modal-overlay,
+  .game-view-overlay {
+    display: none !important;
+  }
+
+  .main-content {
+    padding: 0;
+  }
+
+  .games-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .game-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
   }
 }
 

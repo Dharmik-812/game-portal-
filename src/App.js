@@ -1827,15 +1827,8 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
         {/* Content */}
         <div className="loading-content">
           <div className="logo-container">
-            <div className="logo-icon">🎮
-              <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 12C8 8 12 6 16 8C20 6 24 8 24 12C24 16 20 18 16 16C12 18 8 16 8 12Z" fill="#8c52ff" stroke="#a366ff" strokeWidth="1" />
-                <path d="M10 10C10 8 12 7 14 8C16 7 18 8 18 10C18 12 16 13 14 12C12 13 10 12 10 10Z" fill="#a366ff" />
-                <circle cx="13" cy="9" r="1" fill="#c499ff" />
-                <circle cx="15" cy="9" r="0.5" fill="#c499ff" />
-                <path d="M12 8L10 6M16 8L18 6" stroke="#c499ff" strokeWidth="0.5" />
-                <path d="M14 7L15 5" stroke="#c499ff" strokeWidth="0.5" />
-              </svg>
+            <div className="logo-icon">
+              🎮
             </div>
             <h1 className="logo-text">
               <span className="logo-aves">Aves</span>
@@ -2679,6 +2672,11 @@ function App() {
             />
           )}
 
+          {/* Floating Elements */}
+          {!selectedGame && !isPortalClosing && (
+            <FloatingElements />
+          )}
+
 
 
           {/* Portal content wrapper with smooth fade on close */}
@@ -2688,14 +2686,7 @@ function App() {
               <div className="nav-brand">
                 <div className={`logo ${logoSpinning ? 'spin' : ''}`} onClick={handleLogoSecret} title="Click 10 times to unlock a download">
                   <div className="logo-icon">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 12C8 8 12 6 16 8C20 6 24 8 24 12C24 16 20 18 16 16C12 18 8 16 8 12Z" fill="#8c52ff" stroke="#a366ff" strokeWidth="1" />
-                      <path d="M10 10C10 8 12 7 14 8C16 7 18 8 18 10C18 12 16 13 14 12C12 13 10 12 10 10Z" fill="#a366ff" />
-                      <circle cx="13" cy="9" r="1" fill="#c499ff" />
-                      <circle cx="15" cy="9" r="0.5" fill="#c499ff" />
-                      <path d="M12 8L10 6M16 8L18 6" stroke="#c499ff" strokeWidth="0.5" />
-                      <path d="M14 7L15 5" stroke="#c499ff" strokeWidth="0.5" />
-                    </svg>
+                    🎮
                   </div>
                 </div>
                 <h1 className="portal-title">

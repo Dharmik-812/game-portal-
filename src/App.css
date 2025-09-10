@@ -1518,16 +1518,12 @@ body {
 }
 
 .logo-icon {
-  font-size: 20px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.logo-icon svg {
-  width: 20px;
-  height: 20px;
-}
 
 .portal-title {
   font-size: 22px;
@@ -1621,10 +1617,12 @@ body {
   position: relative;
   transition: var(--transition-smooth);
   box-shadow: 0 3px 10px rgba(110, 59, 206, 0.25);
+  cursor: pointer;
 }
 
 .user-avatar:hover {
   transform: scale(1.08);
+  box-shadow: 0 5px 15px rgba(110, 59, 206, 0.4);
 }
 
 .user-status {
@@ -2779,10 +2777,6 @@ body {
     font-size: 18px;
   }
 
-  .logo-icon svg {
-    width: 18px;
-    height: 18px;
-  }
 
   .portal-title {
     font-size: 20px;
@@ -2872,10 +2866,6 @@ body {
     font-size: 16px;
   }
 
-  .logo-icon svg {
-    width: 16px;
-    height: 16px;
-  }
 
   .portal-title {
     font-size: 18px;
@@ -2980,6 +2970,15 @@ body {
   }
 
   .user-info {
+    display: flex;
+    gap: 8px;
+  }
+
+  .welcome {
+    display: none;
+  }
+
+  .logout-btn {
     display: none;
   }
 }
@@ -3004,10 +3003,6 @@ body {
     font-size: 14px;
   }
 
-  .logo-icon svg {
-    width: 14px;
-    height: 14px;
-  }
 
   .portal-title {
     font-size: 16px;
@@ -3489,11 +3484,6 @@ body {
 /* Optimize for low-end devices */
 @media (max-width: 480px) {
 
-  .particle-background,
-  .background-shapes,
-  .floating-elements {
-    display: none !important;
-  }
 
   .ai-globe-background {
     opacity: 0.3;
@@ -4473,10 +4463,6 @@ select:focus,
   justify-content: center;
 }
 
-.logo-icon svg {
-  width: 4rem;
-  height: 4rem;
-}
 
 .logo-text {
   font-size: 3rem;

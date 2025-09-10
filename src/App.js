@@ -1839,10 +1839,6 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
               <span className="progress-percent">{Math.round(progress)}%</span>
               <span className="progress-message">{messages[currentMessage]}</span>
             </div>
-            {/* Debug info */}
-            <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
-              Debug: Progress = {progress.toFixed(2)}%, isLoading = {isLoading.toString()}
-            </div>
 
             <div className="progress-bar">
               <div

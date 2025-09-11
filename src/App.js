@@ -541,15 +541,15 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
 
 // Moved games data to a separate file (would be imported in a real project)
 const GAMES = [
-  { name: "Kour.io", url: "https://kour.io/", img: "/download.jfif", genre: "FPS" },
+  { name: "Kour.io", url: "https://kour.io/", img: "/download.jfif", genre: "FPS", requiresLogin: true },
   { name: "Slope 3D", url: "https://storage.y8.com/y8-studio/unity/joll/slope/?key=9757549&value=80527", img: "/slope3.png", genre: "Arcade" },
-  { name: "Krunker", url: "https://krunker.io/", img: "/krunker.PNG", genre: "FPS" },
+  { name: "Krunker", url: "https://krunker.io/", img: "/krunker.PNG", genre: "FPS", requiresLogin: true },
   { name: "Chrome Dino", url: "https://codingwith-adam.github.io/dino-game/index.html", img: "/dino.png", genre: "Platformer" },
   { name: "Flappy Bird", url: "https://flappybird.io/", img: "https://upload.wikimedia.org/wikipedia/en/0/0a/Flappy_Bird_icon.png", genre: "Arcade" },
   { name: "Snake", url: "https://www.snakegame.net/", img: "/snake.png", genre: "Arcade" },
-  { name: "Minecraft Classic", url: "https://classic.minecraft.net/", img: "/minecraft.png", genre: "Sandbox" },
+  { name: "Minecraft Classic", url: "https://classic.minecraft.net/", img: "/minecraft.png", genre: "Sandbox", requiresLogin: true },
   { name: "Pac-Man", url: "https://funhtml5games.com?play=pacman", img: "/pacman.png", genre: "Arcade" },
-  { name: "Slither.io", url: "https://slither.io/", img: "/sli.PNG", genre: "IO" },
+  { name: "Slither.io", url: "https://slither.io/", img: "/sli.PNG", genre: "IO", requiresLogin: true },
   { name: "Drift.io", url: "https://drift.io/", img: "/drift.avif", genre: "IO" },
   { name: "Wordle", url: "https://www.nytimes.com/games/wordle/index.html", img: "/wordle.PNG", genre: "Word" },
   { name: "Chess", url: "https://playpager.com/embed/chess/index.html", img: "/chess.PNG", genre: "Board" },
@@ -559,17 +559,17 @@ const GAMES = [
   { name: "Falling Cubes", url: "https://playpager.com/embed/cubes/index.html", img: "/tet.jfif", genre: "Puzzle" },
 
   { name: "Hextris", url: "https://hextris.io/?utm_source=chatgpt.com", img: "/hextrix.PNG", genre: "Arcade" },
-  { name: "N Game (v2)", url: "https://www.thewayoftheninja.org/nv2.html", img: "/nv2.PNG", genre: "Platformer" },
-  { name: "Celeste Classic", url: "https://maddymakesgamesinc.itch.io/celesteclassic?utm_source=chatgpt.com", img: "/celeste.PNG", genre: "Platformer" },
+  { name: "N Game (v2)", url: "https://www.thewayoftheninja.org/nv2.html", img: "/nv2.PNG", genre: "Platformer", requiresLogin: true },
+  { name: "Celeste Classic", url: "https://maddymakesgamesinc.itch.io/celesteclassic?utm_source=chatgpt.com", img: "/celeste.PNG", genre: "Platformer", requiresLogin: true },
   { name: "Line Rider", url: "https://www.linerider.com/", img: "/linerider.PNG", genre: "Sandbox" },
-  { name: "Townscaper", url: "https://oskarstalberg.com/Townscaper/", img: "/townscaper.PNG", genre: "Sandbox" },
+  { name: "Townscaper", url: "https://oskarstalberg.com/Townscaper/", img: "/townscaper.PNG", genre: "Sandbox", requiresLogin: true },
   { name: "Sandspiel", url: "https://sandspiel.club/", img: "/sands.png", genre: "Sandbox" },
   { name: "OvO", url: "https://www.mortgagecalculator.org/money-games/ovo/", img: "/ovo.PNG", genre: "Platformer" },
-  { name: "Agar.io", url: "https://agar.io/#ffa", img: "/agar.PNG", genre: "IO" },
-  { name: "Diep.io", url: "https://diep.io/", img: "/diep.PNG", genre: "IO" },
-  { name: "MooMoo.io", url: "https://moomoo.io/?server=singapore:PW", img: "/moomoo.PNG", genre: "IO" },
-  { name: "Zombs.io", url: "https://zombs.io/", img: "/zombs.PNG", genre: "IO" },
-  { name: "Starblast.io", url: "https://starblast.io/#7134", img: "/starblast.PNG", genre: "IO" },
+  { name: "Agar.io", url: "https://agar.io/#ffa", img: "/agar.PNG", genre: "IO", requiresLogin: true },
+  { name: "Diep.io", url: "https://diep.io/", img: "/diep.PNG", genre: "IO", requiresLogin: true },
+  { name: "MooMoo.io", url: "https://moomoo.io/?server=singapore:PW", img: "/moomoo.PNG", genre: "IO", requiresLogin: true },
+  { name: "Zombs.io", url: "https://zombs.io/", img: "/zombs.PNG", genre: "IO", requiresLogin: true },
+  { name: "Starblast.io", url: "https://starblast.io/#7134", img: "/starblast.PNG", genre: "IO", requiresLogin: true },
   { name: "Run 3", url: "https://run3.io", img: "/run3.PNG", genre: "Platformer" },
 ];
 
@@ -1287,7 +1287,7 @@ const AnimatedText = React.memo(({ text, delay = 0, className = "", effect = "ty
 AnimatedText.displayName = 'AnimatedText';
 
 // GameCard Component with performance improvements
-const GameCard = React.memo(({ game, onSelect, isSelected, index, isFavorite, onToggleFavorite, user }) => {
+const GameCard = React.memo(({ game, onSelect, isSelected, index, isFavorite, onToggleFavorite, user, onRequireLogin }) => {
   const cardRef = useRef(null);
   const rafId = useRef(null);
 
@@ -1355,8 +1355,12 @@ const GameCard = React.memo(({ game, onSelect, isSelected, index, isFavorite, on
   }, [index]);
 
   const handleClick = useCallback(() => {
+    if (game?.requiresLogin && !user) {
+      if (typeof onRequireLogin === 'function') onRequireLogin();
+      return;
+    }
     onSelect(game);
-  }, [onSelect, game]);
+  }, [onSelect, onRequireLogin, game, user]);
 
   const handleFavoriteClick = useCallback((e) => {
     e.stopPropagation();
@@ -1374,14 +1378,18 @@ const GameCard = React.memo(({ game, onSelect, isSelected, index, isFavorite, on
     }
   }, [handleClick]);
 
+  const locked = game?.requiresLogin && !user;
+
   return (
     <div
       ref={cardRef}
-      className={`game-card ${isSelected ? "selected" : ""} ${isFavorite ? "favorite" : ""}`}
+      className={`game-card ${isSelected ? "selected" : ""} ${isFavorite ? "favorite" : ""} ${locked ? "locked" : ""}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}
-      aria-label={`Play ${game.name}, ${game.genre} game`}
+      aria-label={locked ? `Login to play ${game.name}` : `Play ${game.name}, ${game.genre} game`}
+      aria-disabled={locked}
+      title={locked ? 'Login to play' : undefined}
       onKeyPress={handleKeyPress}
     >
       <div className="game-image-container">
@@ -1395,6 +1403,14 @@ const GameCard = React.memo(({ game, onSelect, isSelected, index, isFavorite, on
           <span className="play-button">▶</span>
         </div>
         <div className="game-gradient-overlay"></div>
+        {locked && (
+          <div className="card-lock-overlay" aria-hidden="false">
+            <div className="lock-badge">
+              <span className="lock-icon" aria-hidden="true">🔒</span>
+              <span className="lock-text">Login to Play</span>
+            </div>
+          </div>
+        )}
       </div>
       <div className="game-info">
         <h3>{game.name}</h3>
@@ -2486,9 +2502,15 @@ function App() {
     showNotification('Logged out successfully', 'info');
   }, [logoutUser, showNotification]);
 
-  const handleGameSelect = useCallback((game) => {
+const handleGameSelect = useCallback((game) => {
+    if (game?.requiresLogin && !user) {
+      showNotification('Please login to play this game', 'info');
+      setAuthMode('login');
+      setShowAuth(true);
+      return;
+    }
     setSelectedGame(game);
-  }, []);
+  }, [user, showNotification, setAuthMode, setShowAuth]);
 
   const handleGameClose = useCallback(() => {
     setSelectedGame(null);
@@ -2937,6 +2959,7 @@ function App() {
                         key={game.name}
                         game={game}
                         onSelect={handleGameSelect}
+                        onRequireLogin={() => handleAuthShow('login')}
                         isSelected={selectedGame?.name === game.name}
                         index={index}
                         isFavorite={favorites.some(f => f.name === game.name)}
@@ -3032,11 +3055,38 @@ function App() {
 
       {/* Global 3D portal overlay so it runs over both views */}
       {(isPortalOpening3D || isPortalClosing3D) && (
-        <div className="portal-effect-3d" aria-hidden="true">
+        <div className={`portal-effect-3d ${isPortalClosing3D ? 'reverse' : 'forward'}`} aria-hidden="true">
           <div className="beam"></div>
-          <div className="ring" style={{ width: 160, height: 160 }}></div>
-          <div className="ring" style={{ width: 260, height: 260 }}></div>
-          <div className="ring" style={{ width: 380, height: 380 }}></div>
+          {/* Mechanical iris */}
+          <div className="iris">
+            <span className="blade b1"></span>
+            <span className="blade b2"></span>
+            <span className="blade b3"></span>
+            <span className="blade b4"></span>
+            <span className="blade b5"></span>
+            <span className="blade b6"></span>
+            <span className="blade b7"></span>
+            <span className="blade b8"></span>
+          </div>
+
+          {/* Energy rings */}
+          <div className="ring ring-1" style={{ width: 160, height: 160 }}></div>
+          <div className="ring ring-2" style={{ width: 260, height: 260 }}></div>
+          <div className="ring ring-3" style={{ width: 380, height: 380 }}></div>
+
+          {/* HUD overlays */}
+          <div className="hud-grid"></div>
+          <div className="hud-scan"></div>
+
+          {/* Glitch shards */}
+          <div className="glitch-shards">
+            <span className="shard s1"></span>
+            <span className="shard s2"></span>
+            <span className="shard s3"></span>
+            <span className="shard s4"></span>
+            <span className="shard s5"></span>
+            <span className="shard s6"></span>
+          </div>
         </div>
       )}
 

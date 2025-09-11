@@ -2680,25 +2680,6 @@ function App() {
             resetToDefaults={resetToDefaults}
           />
 
-          {/* Enhanced Animated Background */}
-          {!selectedGame && particlesEnabled && (
-            <ParticleBackground
-              particleCount={particleCount}
-              connectionDistance={connectionDistance}
-              maxConnections={maxConnections}
-              cursorRange={cursorRange}
-              cursorInteraction={cursorInteraction}
-              minSize={minSize}
-              maxSize={maxSize}
-              speed={speed}
-              particleColor={particleColor}
-              lineColor={lineColor}
-              dynamicHue={dynamicHue}
-              safeMode={safeMode}
-              onAutoTuned={handleParticleAutoTuned}
-            />
-          )}
-
           {/* Floating Elements */}
           {!selectedGame && !isPortalClosing && (
             <FloatingElements />
@@ -2708,6 +2689,24 @@ function App() {
 
           {/* Portal content wrapper with smooth fade on close */}
           <div className={`portal-container ${isPortalClosing ? 'fading-out' : ''}`} aria-hidden={isPortalClosing}>
+            {/* Background particles, inside the portal container so UI can layer above */}
+            {particlesEnabled && (
+              <ParticleBackground
+                particleCount={particleCount}
+                connectionDistance={connectionDistance}
+                maxConnections={maxConnections}
+                cursorRange={cursorRange}
+                cursorInteraction={cursorInteraction}
+                minSize={minSize}
+                maxSize={maxSize}
+                speed={speed}
+                particleColor={particleColor}
+                lineColor={lineColor}
+                dynamicHue={dynamicHue}
+                safeMode={safeMode}
+                onAutoTuned={handleParticleAutoTuned}
+              />
+            )}
             {/* Navbar */}
             <nav className="navbar">
               <div className="nav-brand">

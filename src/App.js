@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 import "./App.css";
 import AuthModal from "./AuthModal";
 import { useResponsive, useAdaptiveUI } from "./hooks/useResponsive";
 import { ResponsiveLayout, ResponsiveGrid, AdaptiveContainer, ResponsiveText, ResponsiveButton, ResponsiveModal } from "./components/ResponsiveLayout";
 import { AdaptiveSearch, DynamicImage, DynamicLoading } from "./components/DynamicContent";
+import AIAssistant3D from "./components/AIAssistant3D";
 
 // Interactive AI Globe 3D-style Background (canvas)
 const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
@@ -158,7 +159,7 @@ const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
 });
 
 // ChatbotInterface Component
-const ChatbotInterface = ({ onUnlock }) => {
+const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onLoadingChange }, ref) => {
   const [messages, setMessages] = useState([
     { text: "hey, what can i help you with? AvesOL hides", sender: 'bot' }
   ]);
@@ -179,26 +180,32 @@ const ChatbotInterface = ({ onUnlock }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Mirror state upward when provided
+  useEffect(() => {
+    onMessagesChange && onMessagesChange(messages);
+  }, [messages, onMessagesChange]);
+
+  useEffect(() => {
+    onLoadingChange && onLoadingChange(isLoading);
+  }, [isLoading, onLoadingChange]);
+
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, []);
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-
-    if (!inputText.trim() || isLoading) return;
+  const sendText = useCallback(async (text, attList = []) => {
+    if (!String(text || '').trim() || isLoading) return;
 
     // Add user message
     const userMessage = {
-      text: inputText,
+      text,
       sender: 'user',
-      attachments: attachments.length ? attachments.map(a => ({ url: a.url, name: a.name, type: a.type })) : undefined,
+      attachments: attList.length ? attList.map(a => ({ url: a.url, name: a.name, type: a.type })) : undefined,
     };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    lastUserPromptRef.current = inputText;
+    setMessages(prev => [...prev, userMessage]);
+    lastUserPromptRef.current = text;
     setInputText('');
     setAttachments([]);
 
@@ -222,8 +229,6 @@ const ChatbotInterface = ({ onUnlock }) => {
 
     // Send message to Gemini API
     try {
-      console.log('Sending to Gemini API:', inputText + attachmentNote); // Debug log
-
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCnYAjRq_3kf5b3jTFQndZmCHmeSVQVijw`, {
         method: 'POST',
         headers: {
@@ -231,9 +236,7 @@ const ChatbotInterface = ({ onUnlock }) => {
         },
         body: JSON.stringify({
           contents: [{
-            parts: [{
-              text: inputText + attachmentNote
-            }]
+            parts: [{ text: String(text || '') + attachmentNote }]
           }],
           generationConfig: {
             temperature: 0.7,
@@ -244,18 +247,12 @@ const ChatbotInterface = ({ onUnlock }) => {
         }),
       });
 
-      console.log('Response status:', response.status); // Debug log
-
       if (response.ok) {
         const data = await response.json();
-        console.log('Gemini Response:', data); // Debug log
-
-        // Extract response from Gemini API
         let botResponse = "I'm not sure how to respond to that.";
 
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+        if (data?.candidates?.[0]?.content?.parts?.[0]) {
           botResponse = data.candidates[0].content.parts[0].text;
-          console.log('Extracted response:', botResponse); // Debug log
         } else if (data.error) {
           botResponse = `Sorry, there was an error: ${data.error.message || 'Unknown error'}`;
           console.error('Gemini API Error:', data.error);
@@ -277,6 +274,11 @@ const ChatbotInterface = ({ onUnlock }) => {
     } finally {
       setIsLoading(false);
     }
+  }, [isLoading, onUnlock]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    await sendText(inputText, attachments);
   };
 
   const handleRegenerateAt = useCallback(async (botIndex) => {
@@ -421,6 +423,13 @@ const ChatbotInterface = ({ onUnlock }) => {
     });
   }, []);
 
+  // Expose a simple send method to other components (e.g. 3D overlay)
+  useImperativeHandle(ref, () => ({
+    sendExternalMessage: async (text) => {
+      await sendText(text, []);
+    }
+  }));
+
   return (
     <>
       <div className={`chatbot-container`}>
@@ -428,7 +437,15 @@ const ChatbotInterface = ({ onUnlock }) => {
         <AIGlobeBackground />
         <div className="chatbot-header">
           <h2>AvesAI Assistant</h2>
-          <div className="status-indicator"></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              className="chat-icon-btn"
+              title="Switch to 3D Assistant"
+              onClick={() => onOpen3D && onOpen3D()}
+            >3D</button>
+            <div className="status-indicator"></div>
+          </div>
         </div>
 
         <div className="chatbot-messages">
@@ -518,7 +535,7 @@ const ChatbotInterface = ({ onUnlock }) => {
       </div>
     </>
   );
-};
+});
 
 
 
@@ -2339,6 +2356,13 @@ function App() {
   const [portalUnlocked, setPortalUnlocked] = useState(false);
   const [isPortalClosing, setIsPortalClosing] = useState(false);
   const [isPortalOpening, setIsPortalOpening] = useState(false);
+  const [showAI3D, setShowAI3D] = useState(false);
+  // 3D-specific portal transitions
+  const [isPortalOpening3D, setIsPortalOpening3D] = useState(false);
+  const [isPortalClosing3D, setIsPortalClosing3D] = useState(false);
+  const [lastAI, setLastAI] = useState('2d'); // '2d' | '3d'
+  const [isTransforming3D, setIsTransforming3D] = useState(false);
+  const [transformDir, setTransformDir] = useState(null); // 'to3d' | 'to2d'
 
   // Responsive hooks
   const responsive = useResponsive();
@@ -2540,6 +2564,57 @@ function App() {
     }
   }, [showNotification]);
 
+  // Shared chat state mirror for 3D overlay
+  const chatRef = useRef(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const start3DTransform = useCallback((dir) => {
+    if (isTransforming3D) return;
+    setTransformDir(dir);
+    setIsTransforming3D(true);
+    const mid = 450;
+    const total = 900;
+    if (dir === 'to3d') {
+      setTimeout(() => setShowAI3D(true), mid);
+    } else {
+      setTimeout(() => setShowAI3D(false), mid);
+    }
+    setTimeout(() => {
+      setIsTransforming3D(false);
+      setTransformDir(null);
+    }, total);
+  }, [isTransforming3D]);
+
+  const handleOpen3DView = useCallback(() => { setLastAI('3d'); start3DTransform('to3d'); }, [start3DTransform]);
+  const handleClose3DView = useCallback(() => { setLastAI('2d'); start3DTransform('to2d'); }, [start3DTransform]);
+
+  // Unified portal open from AI (handles 2D and 3D differently)
+  const openPortalFromAI = useCallback(() => {
+    if (showAI3D) {
+      if (isPortalOpening3D) return;
+      setLastAI('3d');
+      setIsPortalOpening3D(true);
+      document.body.classList.add('portal-animating-3d');
+      setTimeout(() => {
+        setPortalUnlocked(true);
+        setShowAI3D(false);
+        setIsPortalOpening3D(false);
+        document.body.classList.remove('portal-animating-3d');
+      }, 2500);
+    } else {
+      if (isPortalOpening) return;
+      setLastAI('2d');
+      setIsPortalOpening(true);
+      document.body.classList.add('portal-animating');
+      setTimeout(() => {
+        setPortalUnlocked(true);
+        setIsPortalOpening(false);
+        document.body.classList.remove('portal-animating');
+      }, 2500);
+    }
+  }, [showAI3D, isPortalOpening3D, isPortalOpening]);
+
   // Keyboard shortcut: Ctrl + Shift + A to return to AI chatbot with reverse portal animation
   useEffect(() => {
     if (!portalUnlocked) return;
@@ -2547,16 +2622,26 @@ function App() {
     const handleKeyDown = (e) => {
       const isCtrlOrMeta = e.ctrlKey || e.metaKey; // support Cmd on macOS
       if (isCtrlOrMeta && e.shiftKey && (e.key === 'S' || e.key === 's')) {
-        if (isPortalClosing) return;
-        setIsPortalClosing(true);
-        document.body.classList.add('portal-animating');
-
-        // Wait for reverse animation to finish, then switch back to chatbot
-        setTimeout(() => {
-          setPortalUnlocked(false);
-          setIsPortalClosing(false);
-          document.body.classList.remove('portal-animating');
-        }, 2500);
+        if (lastAI === '3d') {
+          if (isPortalClosing3D) return;
+          setIsPortalClosing3D(true);
+          document.body.classList.add('portal-animating-3d');
+          setTimeout(() => {
+            setShowAI3D(true);
+            setPortalUnlocked(false);
+            setIsPortalClosing3D(false);
+            document.body.classList.remove('portal-animating-3d');
+          }, 2500);
+        } else {
+          if (isPortalClosing) return;
+          setIsPortalClosing(true);
+          document.body.classList.add('portal-animating');
+          setTimeout(() => {
+            setPortalUnlocked(false);
+            setIsPortalClosing(false);
+            document.body.classList.remove('portal-animating');
+          }, 2500);
+        }
       }
     };
 
@@ -2610,16 +2695,14 @@ function App() {
               </div>
             </>
           )}
-          <ChatbotInterface onUnlock={() => {
-            if (isPortalOpening) return;
-            setIsPortalOpening(true);
-            document.body.classList.add('portal-animating');
-            setTimeout(() => {
-              setPortalUnlocked(true);
-              setIsPortalOpening(false);
-              document.body.classList.remove('portal-animating');
-            }, 2500);
-          }} />
+          {/* Keep 2D chatbot mounted so its state persists */}
+          <ChatbotInterface
+            ref={chatRef}
+            onOpen3D={handleOpen3DView}
+            onUnlock={openPortalFromAI}
+            onMessagesChange={setChatMessages}
+            onLoadingChange={setChatLoading}
+          />
         </>
       ) : (
         <>
@@ -2945,6 +3028,40 @@ function App() {
           {/* Notifications */}
           <NotificationContainer notifications={notifications} />
         </>
+      )}
+
+      {isTransforming3D && (
+        <div className={`ai-transform-overlay ${transformDir}`} aria-hidden="true">
+          <div className="ai-morph" />
+        </div>
+      )}
+
+      {showAI3D && (
+        <div className={`ai3d-fullscreen ${transformDir === 'to3d' && isTransforming3D ? 'entering' : ''} ${transformDir === 'to2d' && isTransforming3D ? 'exiting' : ''}`}> 
+          {/* 3D Portal open/close overlays */}
+          {(isPortalOpening3D || isPortalClosing3D) && (
+            <div className="portal-effect-3d" aria-hidden="true">
+              <div className="beam"></div>
+              <div className="ring" style={{ width: 160, height: 160 }}></div>
+              <div className="ring" style={{ width: 260, height: 260 }}></div>
+              <div className="ring" style={{ width: 380, height: 380 }}></div>
+            </div>
+          )}
+          <AIAssistant3D
+            scene="https://prod.spline.design/RA9irXEPJfjkGNMV/scene.splinecode"
+            messages={chatMessages}
+            isLoading={chatLoading}
+            onSendMessage={(text) => chatRef.current?.sendExternalMessage(text)}
+            showToggle={false}
+            showMessages={false}
+          />
+          <button
+            type="button"
+            className="ai3d-close-btn"
+            title="Back to 2D Chat"
+            onClick={handleClose3DView}
+          >← Back</button>
+        </div>
       )}
     </ResponsiveLayout>
   );

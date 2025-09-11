@@ -1,3 +1,39 @@
+/* 3D Assistant overlay container */
+.ai3d-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: radial-gradient(1200px 600px at 60% 40%, rgba(64, 196, 255, 0.08), transparent),
+              radial-gradient(800px 400px at 30% 70%, rgba(140, 82, 255, 0.08), transparent),
+              #0b0c1a;
+  transition: opacity .45s ease, transform .45s ease;
+}
+.ai3d-fullscreen.entering { opacity: 0; animation: ai3dEnter .9s both; }
+.ai3d-fullscreen.exiting { animation: ai3dExit .9s both; }
+@keyframes ai3dEnter {
+  0% { opacity: 0; transform: perspective(1200px) rotateY(25deg) scale(0.92); }
+  50% { opacity: .6; transform: perspective(1200px) rotateY(0deg) scale(1.02); }
+  100% { opacity: 1; transform: perspective(1200px) rotateY(0deg) scale(1); }
+}
+@keyframes ai3dExit {
+  0% { opacity: 1; transform: perspective(1200px) rotateY(0deg) scale(1); }
+  50% { opacity: .6; transform: perspective(1200px) rotateY(-12deg) scale(0.98); }
+  100% { opacity: 0; transform: perspective(1200px) rotateY(-25deg) scale(0.92); }
+}
+
+.ai3d-close-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  z-index: 5001;
+}
+
 /* ====== CHATBOT INTERFACE STYLES ====== */
 .chatbot-container {
   position: fixed;
@@ -36,6 +72,36 @@
   z-index: -2;
   opacity: 0.85;
   pointer-events: none;
+}
+
+/* Transform overlay between 2D and 3D */
+.ai-transform-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3500;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ai-transform-overlay .ai-morph {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 140vmax; height: 140vmax;
+  transform: translate(-50%,-50%);
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 50%, rgba(140,82,255,0.35), rgba(64,196,255,0.25) 40%, rgba(0,0,0,0) 60%);
+  filter: blur(16px);
+}
+.ai-transform-overlay.to3d .ai-morph { animation: morphTo3D .9s ease forwards; }
+.ai-transform-overlay.to2d .ai-morph { animation: morphTo2D .9s ease forwards; }
+@keyframes morphTo3D {
+  0% { border-radius: 20px; transform: translate(-50%,-50%) scale(0.2) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { border-radius: 50%; transform: translate(-50%,-50%) scale(1) rotate(180deg); opacity: 0; }
+}
+@keyframes morphTo2D {
+  0% { border-radius: 50%; transform: translate(-50%,-50%) scale(1) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { border-radius: 20px; transform: translate(-50%,-50%) scale(0.2) rotate(-180deg); opacity: 0; }
 }
 
 /* Prevent body scroll during animation */
@@ -518,6 +584,31 @@ body.portal-animating {
 /* Reverse the portal rings expansion for closing effect */
 .portal-effect.reverse .portal-ring {
   animation: portalExpand 3s ease-out reverse forwards;
+}
+
+/* 3D-specific portal animation overlay */
+.portal-effect-3d {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 3200; overflow: hidden;
+}
+.portal-effect-3d .beam {
+  position: absolute; left: 50%; top: 0;
+  width: 6px; height: 100%; transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(64,196,255,0.0), rgba(64,196,255,0.55), rgba(140,82,255,0.0));
+  filter: blur(6px); opacity: 0; animation: beamPulse 2.5s ease-in-out forwards;
+}
+.portal-effect-3d .ring {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  border: 3px solid rgba(64,196,255,0.5); border-radius: 50%;
+  width: 120px; height: 120px; opacity: 0; animation: ringPulse3D 2.5s ease forwards;
+  box-shadow: 0 0 40px rgba(64,196,255,0.35), inset 0 0 20px rgba(140,82,255,0.25);
+}
+@keyframes beamPulse { 0%{opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+@keyframes ringPulse3D {
+  0% { opacity:0; transform: translate(-50%,-50%) scale(0.5); }
+  50% { opacity:1; transform: translate(-50%,-50%) scale(1.2); }
+  100% { opacity:0; transform: translate(-50%,-50%) scale(2.2); }
 }
 
 /* Smooth fade for the portal view when closing */

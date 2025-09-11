@@ -3030,6 +3030,16 @@ function App() {
         </>
       )}
 
+      {/* Global 3D portal overlay so it runs over both views */}
+      {(isPortalOpening3D || isPortalClosing3D) && (
+        <div className="portal-effect-3d" aria-hidden="true">
+          <div className="beam"></div>
+          <div className="ring" style={{ width: 160, height: 160 }}></div>
+          <div className="ring" style={{ width: 260, height: 260 }}></div>
+          <div className="ring" style={{ width: 380, height: 380 }}></div>
+        </div>
+      )}
+
       {isTransforming3D && (
         <div className={`ai-transform-overlay ${transformDir}`} aria-hidden="true">
           <div className="ai-morph" />
@@ -3038,15 +3048,6 @@ function App() {
 
       {showAI3D && (
         <div className={`ai3d-fullscreen ${transformDir === 'to3d' && isTransforming3D ? 'entering' : ''} ${transformDir === 'to2d' && isTransforming3D ? 'exiting' : ''}`}> 
-          {/* 3D Portal open/close overlays */}
-          {(isPortalOpening3D || isPortalClosing3D) && (
-            <div className="portal-effect-3d" aria-hidden="true">
-              <div className="beam"></div>
-              <div className="ring" style={{ width: 160, height: 160 }}></div>
-              <div className="ring" style={{ width: 260, height: 260 }}></div>
-              <div className="ring" style={{ width: 380, height: 380 }}></div>
-            </div>
-          )}
           <AIAssistant3D
             scene="https://prod.spline.design/RA9irXEPJfjkGNMV/scene.splinecode"
             messages={chatMessages}

@@ -1456,6 +1456,127 @@ body {
   }
 }
 
+/* Majestic Logo (new animated brand icon) */
+.majestic-logo {
+  position: relative;
+  width: 12px; /* compact container */
+  height: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+}
+
+.majestic-logo .orb {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(60% 60% at 40% 35%, #fff 0%, rgba(255,255,255,0.6) 8%, rgba(255,255,255,0) 16%),
+              radial-gradient(70% 70% at 60% 65%, rgba(140,82,255,0.95) 0%, rgba(140,82,255,0.7) 40%, rgba(140,82,255,0.0) 70%),
+              radial-gradient(120% 120% at 50% 50%, rgba(64,196,255,0.5) 0%, rgba(64,196,255,0.0) 60%);
+  box-shadow: 0 0 6px rgba(140, 82, 255, 0.6), 0 0 12px rgba(64, 196, 255, 0.3);
+}
+
+/* burst ring */
+.majestic-logo::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-color);
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+
+/* rotating halo to make it look clickable */
+.majestic-logo::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(140,82,255,0.0) 0%, rgba(140,82,255,0.55) 50%, rgba(64,196,255,0.0) 100%);
+  filter: blur(2px);
+  opacity: 0;
+  animation: haloSpin 6s linear infinite;
+  pointer-events: none;
+}
+
+.majestic-logo:hover::after,
+.majestic-logo.hint::after {
+  opacity: 0.4;
+}
+
+.majestic-logo.burst::before {
+  animation: ringBurst 700ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+/* hover pulse when not bursting */
+.majestic-logo:hover:not(.burst)::before { animation: ringPulse 900ms ease-out forwards; }
+
+/* subtle idle pulse */
+.majestic-logo .orb { animation: glowPulse 2.6s ease-in-out infinite; transition: transform .25s ease, filter .25s ease; }
+.majestic-logo.burst .orb { animation: glowPulse 0.7s ease-out 1, glowPulse 2.6s ease-in-out infinite 0.7s; }
+.majestic-logo.hint .orb { animation: glowPulse 2.6s ease-in-out infinite, callout 3s ease-in-out infinite; }
+
+/* orbiting dot accent */
+.majestic-logo .orbit-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(140,82,255,0.9), 0 0 10px rgba(64,196,255,0.6);
+  transform: translate(-50%, -50%) rotate(0deg) translateX(7px);
+  transform-origin: center;
+  opacity: 0.95;
+  animation: orbitDot 1.8s linear infinite;
+  pointer-events: none;
+}
+
+.majestic-logo:hover .orbit-dot { animation-duration: 1.2s; }
+
+/* interactive hover on orb */
+.majestic-logo:hover .orb { filter: brightness(1.2) saturate(1.15); transform: scale(1.15); }
+
+/* reuse existing spin animation name */
+.majestic-logo.spin { animation: logoSpin 0.6s ease; }
+
+@keyframes ringBurst {
+  0% { opacity: 0.0; transform: scale(0.6); box-shadow: 0 0 0 0 rgba(140,82,255,0.0); }
+  30% { opacity: 0.7; }
+  100% { opacity: 0; transform: scale(var(--burst-scale, 2.2)); box-shadow: 0 0 0 2px rgba(140,82,255,0.0); }
+}
+
+@keyframes ringPulse {
+  0% { opacity: 0.15; transform: scale(0.75); }
+  70% { opacity: 0.05; transform: scale(1.6); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+
+@keyframes haloSpin { to { transform: rotate(360deg); } }
+
+@keyframes orbitDot { to { transform: translate(-50%, -50%) rotate(360deg) translateX(7px); } }
+
+@keyframes glowPulse {
+  0%,100% { filter: brightness(1); box-shadow: 0 0 6px rgba(140,82,255,0.5), 0 0 12px rgba(64,196,255,0.25); }
+  50%     { filter: brightness(1.15); box-shadow: 0 0 8px rgba(140,82,255,0.7), 0 0 16px rgba(64,196,255,0.35); }
+}
+
+@keyframes callout {
+  0%   { transform: scale(1); }
+  12%  { transform: scale(1.18); }
+  20%  { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* When any modal is open, push particles to the back */
+body.modal-open .particle-background { z-index: -2 !important; }
+
 /* ====== NAVBAR ENHANCEMENTS ====== */
 .navbar {
   background: rgba(22, 22, 42, 0.9);

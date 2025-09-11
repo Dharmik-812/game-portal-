@@ -2335,6 +2335,7 @@ function App() {
   const [showParticleSettings, setShowParticleSettings] = useState(false);
   const [secretClicks, setSecretClicks] = useState(0);
   const [logoSpinning, setLogoSpinning] = useState(false);
+  const [logoBurst, setLogoBurst] = useState(false);
   const [portalUnlocked, setPortalUnlocked] = useState(false);
   const [isPortalClosing, setIsPortalClosing] = useState(false);
   const [isPortalOpening, setIsPortalOpening] = useState(false);
@@ -2486,13 +2487,42 @@ function App() {
     setShowParticleSettings(false);
   }, []);
 
+  const spinTimerRef = useRef(null);
+  const burstTimerRef = useRef(null);
+
   const handleLogoSecret = useCallback(() => {
-    setSecretClicks(prev => {
-      const next = Math.min(prev + 1, 10);
-      return next;
-    });
+    // Increment secret click count (cap higher so effect can keep growing a bit)
+    setSecretClicks(prev => Math.min(prev + 1, 20));
+
+    // Clear any pending timers so rapid clicks retrigger animations
+    if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+    if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
+
+    // Force restart of burst animation for rapid successive clicks
+    setLogoBurst(false);
+    // Next frame, re-enable burst class
+    requestAnimationFrame(() => setLogoBurst(true));
+
     setLogoSpinning(true);
-    setTimeout(() => setLogoSpinning(false), 600);
+
+    spinTimerRef.current = setTimeout(() => setLogoSpinning(false), 500);
+    burstTimerRef.current = setTimeout(() => setLogoBurst(false), 650);
+  }, []);
+
+  // When any modal is open, ensure particles sit behind content
+  useEffect(() => {
+    const open = showAuth || showParticleSettings;
+    if (open) document.body.classList.add('modal-open');
+    else document.body.classList.remove('modal-open');
+    return () => document.body.classList.remove('modal-open');
+  }, [showAuth, showParticleSettings]);
+
+  // Clean up animation timers on unmount
+  useEffect(() => {
+    return () => {
+      if (spinTimerRef.current) clearTimeout(spinTimerRef.current);
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
+    };
   }, []);
 
   const handleSecretDownload = useCallback(() => {
@@ -2681,11 +2711,18 @@ function App() {
             {/* Navbar */}
             <nav className="navbar">
               <div className="nav-brand">
-                <div className={`logo ${logoSpinning ? 'spin' : ''}`} onClick={handleLogoSecret} title="Click 10 times to unlock a download">
-                  <div className="logo-icon">🎮</div>
+                <div
+                  className={`majestic-logo ${logoSpinning ? 'spin' : ''} ${logoBurst ? 'burst' : ''} ${secretClicks < 10 ? 'hint' : ''}`}
+                  onClick={handleLogoSecret}
+                  title="Click 10 or more times to get a secret download"
+                  aria-label="Logo secret: click 10 or more times to unlock download"
+                  style={{ '--burst-scale': `${2 + Math.min(secretClicks, 20) * 0.08}` }}
+                >
+                  <span className="orb" aria-hidden="true"></span>
+                  <span className="orbit-dot" aria-hidden="true"></span>
                 </div>
-                <h1 className="portal-title">
-                  <AnimatedText text="Aves" delay={0} />
+                <h1 className="portal-title" aria-label="AvesOL">
+                  <AnimatedText text="Aves" delay={0} className="title-part" />
                   <AnimatedText text="OL" delay={400} className="title-part" />
                 </h1>
               </div>

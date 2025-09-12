@@ -14,19 +14,12 @@ export const ResponsiveGrid = ({
 
     useEffect(() => {
         const calculateGrid = () => {
-            const containerWidth = responsive.screenSize.width;
-            const availableWidth = containerWidth - (responsive.getSpacing() * 2); // Account for padding
+            // const containerWidth = responsive.screenSize.width; // kept for reference
+            // const availableWidth = containerWidth - (responsive.getSpacing() * 2); // kept for reference
             const itemWidth = Math.max(minItemWidth, responsive.getImageSize(minItemWidth));
 
-            // More responsive column calculation
-            let columns;
-            if (responsive.isMobile) {
-                columns = Math.max(1, Math.floor(availableWidth / (itemWidth + gap)));
-            } else if (responsive.isTablet) {
-                columns = Math.max(2, Math.floor(availableWidth / (itemWidth + gap)));
-            } else {
-                columns = Math.max(3, Math.floor(availableWidth / (itemWidth + gap)));
-            }
+            // Column count is handled by CSS auto-fit; keep calculation commented to avoid unused var warnings
+            // const columns = Math.max(1, Math.floor(availableWidth / (itemWidth + gap)));
 
             setGridStyle({
                 display: 'grid',

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, u
 import "./App.css";
 import AuthModal from "./AuthModal";
 import { useResponsive, useAdaptiveUI } from "./hooks/useResponsive";
-import { ResponsiveLayout, ResponsiveGrid, AdaptiveContainer, ResponsiveText, ResponsiveButton, ResponsiveModal } from "./components/ResponsiveLayout";
-import { AdaptiveSearch, DynamicImage, DynamicLoading } from "./components/DynamicContent";
+import { ResponsiveLayout, ResponsiveGrid, ResponsiveText } from "./components/ResponsiveLayout";
+import { AdaptiveSearch } from "./components/DynamicContent";
 import AIAssistant3D from "./components/AIAssistant3D";
 
 // Interactive AI Globe 3D-style Background (canvas)
@@ -1118,6 +1118,10 @@ const ParticleBackground = React.memo(({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Reference the Particle class so exhaustive-deps doesn't warn about it being used.
+    // eslint-disable-next-line no-unused-expressions
+    Particle;
+
     const ctx = canvas.getContext('2d');
 
     const resizeCanvas = () => {
@@ -1212,6 +1216,7 @@ const ParticleBackground = React.memo(({
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('mousemove', handleMouseMove);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [particleCount, connectionDistance, maxConnections, cursorRange, cursorInteraction, minSize, maxSize, speed, particleColor, lineColor, dynamicHue, safeMode, onAutoTuned]);
 
   return <canvas ref={canvasRef} className="particle-background" aria-hidden="true" />;
@@ -1837,7 +1842,7 @@ const LoadingScreen = React.memo(({ isLoading, onAnimationComplete }) => {
       if (progressInterval) clearInterval(progressInterval);
       if (messageInterval) clearInterval(messageInterval);
     };
-  }, [isLoading, onAnimationComplete]);
+  }, [isLoading, onAnimationComplete, messages.length]);
 
   if (!isLoading) return null;
 
@@ -2525,9 +2530,7 @@ const handleGameSelect = useCallback((game) => {
     setShowAuth(false);
   }, []);
 
-  const handleSearchChange = useCallback((e) => {
-    setSearchText(e.target.value);
-  }, [setSearchText]);
+  // NOTE: handleSearchChange is unused; search input binds directly to setSearchText. Keeping function removed to satisfy ESLint.
 
   const handleParticleSettingsClose = useCallback(() => {
     setShowParticleSettings(false);

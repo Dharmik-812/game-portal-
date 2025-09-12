@@ -2613,7 +2613,7 @@ const handleGameSelect = useCallback((game) => {
     }, total);
   }, [isTransforming3D]);
 
-  const handleOpen3DView = useCallback(() => { setLastAI('3d'); setShowAI3D(true); }, []);
+  const handleOpen3DView = useCallback(() => { setLastAI('3d'); start3DTransform('to3d'); }, [start3DTransform]);
   const handleClose3DView = useCallback(() => { setLastAI('2d'); start3DTransform('to2d'); }, [start3DTransform]);
 
   // Unified portal open from 2D AI

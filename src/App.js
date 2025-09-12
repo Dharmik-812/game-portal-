@@ -2613,10 +2613,10 @@ const handleGameSelect = useCallback((game) => {
   const handleOpen3DView = useCallback(() => { setLastAI('3d'); setShowAI3D(true); }, []);
   const handleClose3DView = useCallback(() => { setLastAI('2d'); start3DTransform('to2d'); }, [start3DTransform]);
 
-  // Unified portal open from AI (handles 2D and 3D differently)
+  // Unified portal open from 2D AI
   const openPortalFromAI = useCallback(() => {
     if (showAI3D) {
-      // Do not auto-close 3D when opening the portal; delay portal until user exits 3D
+      // Keep guidance for 2D portal while in 3D
       if (isPortalOpening3D) return;
       showNotification('Close 3D view first to open the portal.', 'info');
       return;
@@ -2632,7 +2632,27 @@ const handleGameSelect = useCallback((game) => {
     }, 2500);
   }, [showAI3D, isPortalOpening3D, isPortalOpening, showNotification]);
 
-  // Keyboard shortcut: Ctrl + Shift + A to return to AI chatbot with reverse portal animation
+  // 3D-only: portal overlay animation (does not switch views)
+  const openPortalEffect3D = useCallback(() => {
+    if (isPortalOpening3D) return;
+    setLastAI('3d');
+    setIsPortalOpening3D(true);
+    document.body.classList.add('portal-animating-3d');
+    setTimeout(() => {
+      // After the 3D overlay animation, switch to portal view (guard against reverse close)
+      if (isPortalClosing3D) { // if a reverse close started meanwhile, abort opening
+        setIsPortalOpening3D(false);
+        document.body.classList.remove('portal-animating-3d');
+        return;
+      }
+      setShowAI3D(false);
+      setPortalUnlocked(true);
+      setIsPortalOpening3D(false);
+      document.body.classList.remove('portal-animating-3d');
+    }, 2500);
+  }, [isPortalOpening3D, isPortalClosing3D]);
+
+  // Keyboard shortcut: Ctrl + Shift + S to return to AI chatbot with reverse portal animation
   useEffect(() => {
     if (!portalUnlocked) return;
 
@@ -2664,7 +2684,7 @@ const handleGameSelect = useCallback((game) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [portalUnlocked, isPortalClosing]);
+  }, [portalUnlocked, isPortalClosing, isPortalClosing3D, lastAI]);
 
 
   // Ensure loading starts properly
@@ -3098,6 +3118,7 @@ const handleGameSelect = useCallback((game) => {
             messages={chatMessages}
             isLoading={chatLoading}
             onSendMessage={(text) => chatRef.current?.sendExternalMessage(text)}
+            onUnlock={openPortalEffect3D}
             showToggle={false}
             showMessages={false}
           />

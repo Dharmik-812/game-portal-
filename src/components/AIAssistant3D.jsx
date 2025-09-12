@@ -13,6 +13,22 @@ const TALK_TRIGGER_OBJECT = 'AI Assistant Trigger';
 const TALK_TRIGGER_DOWN = 'keyDown';
 const TALK_TRIGGER_UP = 'keyUp';
 
+// Portal trigger candidates to be robust across scene revisions
+const PORTAL_TRIGGER_OBJECTS = [
+  'AvesOL Portal',
+  'AvesOLPortal',
+  'PortalTrigger',
+  'Portal Switch',
+  'Portal',
+];
+const PORTAL_TRIGGER_EVENTS = [
+  'keyDown',
+  'open',
+  'start',
+  'activate',
+  // Also treat custom named events (no object name) in trigger fn below
+];
+
 // Helper: robustly emit Spline events in both typed and custom-named forms
 function emitSplineEvent(spline, eventOrType, objectName) {
   if (!spline) return false;
@@ -44,7 +60,25 @@ function triggerTalkStop(spline) {
   emitSplineEvent(spline, TALK_TRIGGER_UP, TALK_TRIGGER_OBJECT);
 }
 
-const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading, onSendMessage, showToggle = true, showMessages = false, scene = DEFAULT_SCENE }) => {
+function triggerPortalOpen(spline) {
+  if (!spline) return;
+  try {
+    // Try object+typed events first
+    for (const obj of PORTAL_TRIGGER_OBJECTS) {
+      for (const ev of PORTAL_TRIGGER_EVENTS) {
+        emitSplineEvent(spline, ev, obj);
+      }
+    }
+    // Try custom event names (scene-defined)
+    const customEvents = ['PortalOpen', 'AvesOL Portal', 'AvesOLPortal', 'OpenPortal'];
+    for (const ev of customEvents) emitSplineEvent(spline, ev);
+    // Legacy: pulse a SpeakingPulse or generic keyDown as a nudge
+    try { spline?.emitEvent('keyDown', 'Portal'); } catch (_) {}
+    try { spline?.emitEvent('keyDown', 'SpeakingPulse'); } catch (_) {}
+  } catch (_) {}
+}
+
+const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading, onSendMessage, onUnlock, showToggle = true, showMessages = false, scene = DEFAULT_SCENE }) => {
   const [is3DMode, setIs3DMode] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -85,6 +119,27 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
   const prevMsgCountRef = useRef(0);
   const energyTimerRef = useRef(null);
   const recognitionRef = useRef(null);
+  const portalLastFiredRef = useRef(0);
+
+  // Detect 'avesol' exactly when the user submits (case-insensitive, trims whitespace)
+  const matchesAvesol = useCallback((raw) => {
+    try {
+      if (raw == null) return false;
+      const norm = String(raw).trim().toLowerCase();
+      return norm === 'avesol';
+    } catch (_) { return false; }
+  }, []);
+
+  const maybeTriggerPortalFromText = useCallback((raw) => {
+    try {
+      if (!matchesAvesol(raw)) return;
+      const now = Date.now();
+      if (now - portalLastFiredRef.current < 800) return;
+      portalLastFiredRef.current = now;
+      triggerPortalOpen(splineRef.current);
+      try { onUnlock && onUnlock(); } catch (_) {}
+    } catch (_) {}
+  }, [matchesAvesol, onUnlock]);
 
   // If external messages are passed, sync them (fallback to internal messages otherwise)
   useEffect(() => {
@@ -221,6 +276,7 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     } catch (_) {}
   }, [showSettings]);
 
+
   // Load Azure voices when settings opened (optional, requires env keys)
   useEffect(() => {
     let aborted = false;
@@ -356,7 +412,7 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     recognitionRef.current = rec;
   }, [voices, selectedVoice, onSendMessage]);
 
-  // Detect when a new user message is sent (to force the talk trigger)
+  // Detect when a new user message is sent (to force the talk trigger only)
   useEffect(() => {
     const count = messages?.length || 0;
     if (count > prevMsgCountRef.current) {
@@ -406,9 +462,13 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    const text = inputText.trim();
+    if (!text) return;
+    try {
+      maybeTriggerPortalFromText(text);
+    } catch (_) {}
     if (onSendMessage) {
-      onSendMessage(inputText);
+      onSendMessage(text);
       setInputText('');
     }
   };

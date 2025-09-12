@@ -1,8 +1,48 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Spline from '@splinetool/react-spline';
 import './AIAssistant3D.css';
+import { useSpeech } from '../hooks/useSpeech';
+import CinematicSelect from './CinematicSelect.jsx';
+import { isAzureConfigured, listAzureVoices, synthesizeAzureTTS } from '../services/tts/azureTTS';
 
-const DEFAULT_SCENE = "https://prod.spline.design/RA9irXEPJfjkGNMV/scene.splinecode";
+const DEFAULT_SCENE = "https://prod.spline.design/gQap7B6fEt3ajKsf/scene.splinecode";
+
+// Spline trigger config: the Spline scene must contain an object/trigger named exactly this.
+// We will emit keyDown/keyUp on it to start/stop the talking animation.
+const TALK_TRIGGER_OBJECT = 'AI Assistant Trigger';
+const TALK_TRIGGER_DOWN = 'keyDown';
+const TALK_TRIGGER_UP = 'keyUp';
+
+// Helper: robustly emit Spline events in both typed and custom-named forms
+function emitSplineEvent(spline, eventOrType, objectName) {
+  if (!spline) return false;
+  let ok = false;
+  try {
+    // Preferred: typed event to a named object
+    if (objectName) {
+      spline.emitEvent(eventOrType, objectName);
+      ok = true;
+    }
+  } catch (_) {}
+  try {
+    // Fallback: custom single-argument event name (if scene defined it)
+    if (!ok) {
+      spline.emitEvent(eventOrType);
+      ok = true;
+    }
+  } catch (_) {}
+  return ok;
+}
+
+function triggerTalkStart(spline) {
+  // Try typed keyDown on the trigger object, then custom-named event
+  emitSplineEvent(spline, TALK_TRIGGER_DOWN, TALK_TRIGGER_OBJECT);
+  emitSplineEvent(spline, TALK_TRIGGER_OBJECT);
+}
+
+function triggerTalkStop(spline) {
+  emitSplineEvent(spline, TALK_TRIGGER_UP, TALK_TRIGGER_OBJECT);
+}
 
 const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading, onSendMessage, showToggle = true, showMessages = false, scene = DEFAULT_SCENE }) => {
   const [is3DMode, setIs3DMode] = useState(true);
@@ -16,16 +56,33 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
   const [pitch, setPitch] = useState(1.0);
   const [volume, setVolume] = useState(1.0);
   const [voices, setVoices] = useState([]);
+  const [azureVoices, setAzureVoices] = useState([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakEnergy, setSpeakEnergy] = useState(0);
   const [listening, setListening] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const advancedPrefKey = 'ai3d_advanced_open';
   const splineRef = useRef();
+
+  // Speech hook integration (microphone + voices)
+  const { voices: speechVoices, isListening: speechIsListening, startListening, stopListening, hasRecognition } = useSpeech(
+    useCallback((transcript) => {
+      setInputText('');
+      onSendMessage && onSendMessage(transcript);
+    }, [onSendMessage])
+  );
+
+  // Mirror hook voices and listening state into local UI state
+  useEffect(() => {
+    if (Array.isArray(speechVoices) && speechVoices.length > 0) setVoices(speechVoices);
+  }, [speechVoices]);
+  useEffect(() => { setListening(!!speechIsListening); }, [speechIsListening]);
+  const splineLoadedRef = useRef(false);
   const messagesEndRef = useRef();
   const utteranceRef = useRef(null);
   const lastSpokenHashRef = useRef('');
+  const prevMsgCountRef = useRef(0);
   const energyTimerRef = useRef(null);
   const recognitionRef = useRef(null);
 
@@ -42,14 +99,9 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     }
   }, [externalLoading]);
 
-  // Load available voices for TTS and restore settings
+  // Restore persisted preferences (voice toggles, sliders, and last selected voice)
+  // Note: voice list is loaded via useSpeech; avoid attaching onvoiceschanged here to prevent conflicts.
   useEffect(() => {
-    if (!('speechSynthesis' in window)) return;
-    const synth = window.speechSynthesis;
-    const load = () => setVoices(synth.getVoices());
-    load();
-    synth.onvoiceschanged = load;
-    // Restore persisted preferences
     try {
       const pref = JSON.parse(localStorage.getItem('ai3d_voice') || '{}');
       if (typeof pref.voiceEnabled === 'boolean') setVoiceEnabled(pref.voiceEnabled);
@@ -58,9 +110,6 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
       if (typeof pref.volume === 'number') setVolume(pref.volume);
       if (typeof pref.selectedVoice === 'string') setSelectedVoice(pref.selectedVoice);
     } catch (_) {}
-    return () => {
-      synth.onvoiceschanged = null;
-    };
   }, []);
 
   // Persist preferences
@@ -70,18 +119,73 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     } catch (_) {}
   }, [voiceEnabled, rate, pitch, volume, selectedVoice]);
 
+  // Sorted list of all available voices (grouped by language then name)
+  const sortedVoices = useMemo(() => {
+    const list = Array.isArray(voices) ? [...voices] : [];
+    list.sort((a, b) => (a.lang || '').localeCompare(b.lang || '') || (a.name || '').localeCompare(b.name || ''));
+    return list;
+  }, [voices]);
+
+  const azureVoiceOptions = useMemo(() => {
+    return (azureVoices || []).map(v => ({
+      // Azure ShortName uniquely identifies a voice for synthesis
+      value: `azure:${v.ShortName}`,
+      label: `${v.LocalName || v.DisplayName || v.ShortName} (${v.Locale || v.LocaleName || ''}) · Azure`,
+      group: `Azure ${v.Locale || ''}`.trim(),
+      meta: { provider: 'azure', shortName: v.ShortName },
+    }));
+  }, [azureVoices]);
+
+  const webSpeechVoiceOptions = useMemo(() => (
+    sortedVoices.map(v => ({
+      value: `web:${v.name}`,
+      label: `${v.name} (${v.lang})${v.default ? ' • default' : ''}`,
+      group: v.lang,
+      meta: { provider: 'web', name: v.name },
+    }))
+  ), [sortedVoices]);
+
+  const voiceOptions = useMemo(() => (
+    [...webSpeechVoiceOptions, ...azureVoiceOptions]
+  ), [webSpeechVoiceOptions, azureVoiceOptions]);
+
+
+  // Initialize or validate selected voice when voices load/update
+  useEffect(() => {
+    const list = voices || [];
+    if (!list.length) return;
+    // Migrate legacy selections (pre-prefixed)
+    if (selectedVoice && !selectedVoice.includes(':')) {
+      const exists = !!list.find(v => v.name === selectedVoice);
+      if (exists) {
+        setSelectedVoice(`web:${selectedVoice}`);
+        return;
+      }
+    }
+    // If no selection yet, choose an English voice if available, else first.
+    if (!selectedVoice) {
+      const preferred = list.find(v => (v.lang || '').toLowerCase().startsWith('en')) || list[0];
+      setSelectedVoice(preferred ? `web:${preferred.name}` : '');
+      return;
+    }
+    // If the previously selected web voice disappeared (browser update), fallback gracefully.
+    if (selectedVoice.startsWith('web:')) {
+      const name = selectedVoice.replace(/^web:/, '');
+      const stillExists = !!list.find(v => v.name === name);
+      if (!stillExists) {
+        const preferred = list.find(v => (v.lang || '').toLowerCase().startsWith('en')) || list[0];
+        setSelectedVoice(preferred ? `web:${preferred.name}` : '');
+      }
+    }
+  }, [voices, selectedVoice]);
+
   // Persist advanced toggle
   useEffect(() => {
     try { localStorage.setItem(advancedPrefKey, JSON.stringify(!!showAdvanced)); } catch (_) {}
   }, [showAdvanced]);
 
-  // Responsive: compact toolbar and restore advanced toggle
+  // Restore advanced toggle at mount (use saved value when available)
   useEffect(() => {
-    const compute = () => {
-      const compact = window.innerWidth < 1100;
-      setIsCompact(compact);
-    };
-    // Restore saved advanced toggle once at mount
     try {
       const saved = JSON.parse(localStorage.getItem(advancedPrefKey) || 'null');
       if (typeof saved === 'boolean') setShowAdvanced(saved);
@@ -89,28 +193,97 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     } catch (_) {
       setShowAdvanced(window.innerWidth >= 1100);
     }
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
   }, []);
 
-  // Speak helper
-  const speak = useCallback((text) => {
-    if (!('speechSynthesis' in window) || !voiceEnabled || !text) return;
+  // Proactively load voices when opening settings (helps Chrome/Edge where voices load late)
+  useEffect(() => {
+    if (!showSettings) return;
     try {
+      if ('speechSynthesis' in window) {
+        const synth = window.speechSynthesis;
+        const listNow = synth.getVoices();
+        if (Array.isArray(listNow) && listNow.length > 0) {
+          setVoices(listNow);
+        } else {
+          let tries = 0;
+          const iv = setInterval(() => {
+            const list = synth.getVoices();
+            if (Array.isArray(list) && list.length > 0) {
+              setVoices(list);
+              clearInterval(iv);
+            } else if (++tries > 80) {
+              clearInterval(iv);
+            }
+          }, 125);
+          return () => clearInterval(iv);
+        }
+      }
+    } catch (_) {}
+  }, [showSettings]);
+
+  // Load Azure voices when settings opened (optional, requires env keys)
+  useEffect(() => {
+    let aborted = false;
+    async function run() {
+      try {
+        if (!showSettings || !isAzureConfigured()) return;
+        const list = await listAzureVoices();
+        if (!aborted) setAzureVoices(Array.isArray(list) ? list : []);
+      } catch (_) {
+        if (!aborted) setAzureVoices([]);
+      }
+    }
+    run();
+    return () => { aborted = true; };
+  }, [showSettings]);
+
+  // Speak helper
+  const speak = useCallback(async (text) => {
+    if (!voiceEnabled || !text) return;
+    try {
+      const isAzure = selectedVoice?.startsWith('azure:');
+      if (isAzure) {
+        // Azure synth
+        const shortName = selectedVoice.replace(/^azure:/, '');
+        const playback = await synthesizeAzureTTS(text, shortName, { rate, pitch, volume });
+        const audio = new Audio(playback.url);
+        audio.volume = playback.volume;
+        audio.onplay = () => {
+          setIsSpeaking(true);
+          try { triggerTalkStart(splineRef.current); } catch (_) {}
+          if (energyTimerRef.current) clearInterval(energyTimerRef.current);
+          energyTimerRef.current = setInterval(() => {
+            const e = 0.25 + Math.random() * 0.55;
+            setSpeakEnergy(e);
+          }, 140);
+        };
+        const cleanup = () => {
+          setIsSpeaking(false);
+          setSpeakEnergy(0);
+          if (energyTimerRef.current) clearInterval(energyTimerRef.current);
+          try { triggerTalkStop(splineRef.current); } catch (_) {}
+          playback.dispose && playback.dispose();
+        };
+        audio.onended = cleanup;
+        audio.onerror = cleanup;
+        await audio.play();
+        return;
+      }
+
+      // Web Speech synth
+      if (!('speechSynthesis' in window)) return;
       const synth = window.speechSynthesis;
-      // cancel any current speech
       if (synth.speaking) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      const v = voices.find(v => v.name === selectedVoice) || voices.find(v => (v.lang || '').toLowerCase().startsWith('en')) || voices[0];
+      const v = voices.find(v => `web:${v.name}` === selectedVoice) || voices.find(v => (v.lang || '').toLowerCase().startsWith('en')) || voices[0];
       if (v) u.voice = v;
       u.rate = rate;
       u.pitch = pitch;
       u.volume = volume;
       u.onstart = () => {
         setIsSpeaking(true);
-        try { splineRef.current?.emitEvent('mouseDown', 'Speaking'); } catch (_) {}
-        // Start energy pulses
+        try { triggerTalkStart(splineRef.current); } catch (_) {}
+        try { splineRef.current?.emitEvent('keyDown', 'SpeakingPulse'); } catch (_) {}
         if (energyTimerRef.current) clearInterval(energyTimerRef.current);
         energyTimerRef.current = setInterval(() => {
           const e = 0.25 + Math.random() * 0.55;
@@ -122,7 +295,7 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
         setIsSpeaking(false);
         setSpeakEnergy(0);
         if (energyTimerRef.current) clearInterval(energyTimerRef.current);
-        try { splineRef.current?.emitEvent('mouseUp', 'Speaking'); } catch (_) {}
+        try { triggerTalkStop(splineRef.current); } catch (_) {}
       };
       utteranceRef.current = u;
       synth.speak(u);
@@ -151,6 +324,8 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
       try { window.speechSynthesis?.cancel(); } catch (_) {}
       if (energyTimerRef.current) clearInterval(energyTimerRef.current);
       try { recognitionRef.current && recognitionRef.current.stop(); } catch (_) {}
+      // Ensure we stop any talking animation if component unmounts
+      try { splineRef.current?.emitEvent(TALK_TRIGGER_UP, TALK_TRIGGER_OBJECT); } catch (_) {}
     };
   }, []);
 
@@ -159,7 +334,9 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
-    rec.lang = (voices.find(v => v.name === selectedVoice)?.lang) || 'en-US';
+    // If web voice selected, use its language, else default to en-US for Azure
+    const webVoice = voices.find(v => `web:${v.name}` === selectedVoice);
+    rec.lang = (webVoice?.lang) || 'en-US';
     rec.interimResults = true;
     rec.continuous = false;
     rec.onstart = () => setListening(true);
@@ -179,25 +356,45 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
     recognitionRef.current = rec;
   }, [voices, selectedVoice, onSendMessage]);
 
-  const toggleListening = () => {
-    const rec = recognitionRef.current;
-    if (!rec) {
-      setListening(v => !v);
-      return;
+  // Detect when a new user message is sent (to force the talk trigger)
+  useEffect(() => {
+    const count = messages?.length || 0;
+    if (count > prevMsgCountRef.current) {
+      const last = messages[count - 1];
+      if (last && last.sender === 'user') {
+        try { triggerTalkStart(splineRef.current); } catch (_) {}
+      }
     }
+    prevMsgCountRef.current = count;
+  }, [messages]);
+
+  const toggleListening = () => {
     try {
-      if (!listening) {
-        setListening(true);
-        rec.start();
+      if (!hasRecognition) {
+        setListening(v => !v);
+        return;
+      }
+      if (!speechIsListening) {
+        startListening();
       } else {
-        rec.stop();
-        setListening(false);
+        stopListening();
       }
     } catch (_) {
-      // starting while already started throws; ensure state resets
       setListening(false);
     }
   };
+
+  // Trigger Spline talking animation when the assistant starts/stops responding
+  useEffect(() => {
+    if (!splineLoadedRef.current) return; // wait until Spline is ready
+    try {
+      if (isLoading || isSpeaking) {
+        triggerTalkStart(splineRef.current);
+      } else {
+        triggerTalkStop(splineRef.current);
+      }
+    } catch (_) {}
+  }, [isLoading, isSpeaking]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -243,84 +440,31 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
         </div>
       )}
 
-      {/* Dynamic top toolbar */}
-      <div className={`ai-toolbar ${isCompact ? 'compact' : ''} ${showAdvanced ? 'expanded' : ''}`}>
-        <div className="toolbar-left">
-          <button
-            type="button"
-            className={`voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
-            title={voiceEnabled ? 'Voice output: On' : 'Voice output: Off'}
-            aria-label={voiceEnabled ? 'Voice output on' : 'Voice output off'}
-            onClick={() => {
-              setVoiceEnabled(v => {
-                const nv = !v;
-                try { if (!nv) window.speechSynthesis?.cancel(); } catch (_) {}
-                return nv;
-              });
-            }}
-          >
-            <span className="icon">{voiceEnabled ? '🔊' : '🔈'}</span>
-            <span className={`eq-bars ${isSpeaking ? 'on' : ''}`} aria-hidden="true"><span></span><span></span><span></span></span>
-            <span className="ctl-label">Voice</span>
-          </button>
-          <button
-            type="button"
-            className={`mic-toggle ${listening ? 'listening' : ''}`}
-            title={listening ? 'Listening… click to stop' : 'Push-to-talk'}
-            aria-pressed={listening}
-            onClick={toggleListening}
-          ><span className="icon">🎤</span><span className="ctl-label">Mic</span></button>
-        </div>
-        <div className="toolbar-center">
-          {voiceEnabled && (
-            <div className="voice-select-wrap" title="Choose a voice">
-              <span className="ctl-label">Voice</span>
-              <select
-                className="voice-select"
-                value={selectedVoice}
-                onChange={e => setSelectedVoice(e.target.value)}
-                aria-label="Voice selection"
-              >
-                <option value="">Auto</option>
-                {voices.map(v => (
-                  <option key={`${v.name}-${v.lang}`} value={v.name}>{v.name} ({v.lang})</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-        <div className="toolbar-right">
-          {voiceEnabled && (
-            <>
-              {showAdvanced && (
-                <div className="voice-sliders">
-                  <label title="Rate"><span className="ctl-caption">Rate</span><input type="range" min="0.6" max="1.4" step="0.05" value={rate} onChange={e => setRate(Number(e.target.value))} /></label>
-                  <label title="Pitch"><span className="ctl-caption">Pitch</span><input type="range" min="0.5" max="2" step="0.05" value={pitch} onChange={e => setPitch(Number(e.target.value))} /></label>
-                  <label title="Volume"><span className="ctl-caption">Volume</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={e => setVolume(Number(e.target.value))} /></label>
-                </div>
-              )}
-              <button
-                type="button"
-                className={`advanced-toggle ${showAdvanced ? 'open' : ''}`}
-                title={showAdvanced ? 'Hide advanced controls' : 'Show advanced controls'}
-                onClick={() => setShowAdvanced(s => !s)}
-                aria-expanded={showAdvanced}
-              >⚙ <span className="ctl-label">{showAdvanced ? 'Hide' : (isCompact ? 'More' : 'Advanced')}</span></button>
-            </>
-          )}
-        </div>
+      {/* Brand header */}
+      <div className="ai-brand">
+        <span className="ai-brand-glow" aria-hidden="true"></span>
+        <span className="ai-brand-text">AvesAI</span>
       </div>
 
       <div className="ai-content">
+        {/* Decorative overlays for a cinematic look */}
+        <div className="ai-aurora" aria-hidden="true"></div>
+        <div className="ai-hud-grid" aria-hidden="true"></div>
+        <div className="ai-sparkles" aria-hidden="true">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span key={`sp-${i}`} className="sparkle" style={{ left: `${(i * 53) % 100}%`, top: `${(i * 29) % 100}%`, animationDelay: `${i * 0.18}s` }} />
+          ))}
+        </div>
         {/* Always show the 3D scene while embedded */}
         <div className="spline-container">
           <Spline
             scene={scene}
             onLoad={(spline) => {
               splineRef.current = spline;
-              // Try to disable camera controls if available
+              splineLoadedRef.current = true;
+              // If AI is already responding at load time, ensure talking starts
               try {
-                spline?.setZoom && spline.setZoom(0); // no-op safeguard
+                if (isLoading) triggerTalkStart(splineRef.current);
               } catch (_) {}
             }}
           />
@@ -371,19 +515,75 @@ const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading,
           </div>
         )}
 
-        {/* Input stays fixed at the bottom of the overlay */}
-        <form onSubmit={handleSendMessage} className="input-form">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type your message here..."
-            disabled={false}
-          />
-          <button type="submit" disabled={false}>
-            Send
+        {/* Bottom control dock */}
+        <form onSubmit={handleSendMessage} className="input-form dock">
+          <button
+            type="button"
+            className={`dock-btn voice-toggle ${voiceEnabled ? 'on' : 'off'}`}
+            title={voiceEnabled ? 'Voice output: On' : 'Voice output: Off'}
+            aria-label={voiceEnabled ? 'Voice output on' : 'Voice output off'}
+            onClick={() => {
+              setVoiceEnabled(v => {
+                const nv = !v;
+                try { if (!nv) window.speechSynthesis?.cancel(); } catch (_) {}
+                return nv;
+              });
+            }}
+          >
+            <span className="icon">{voiceEnabled ? '🔊' : '🔈'}</span>
+            <span className={`eq-bars ${isSpeaking ? 'on' : ''}`} aria-hidden="true"><span></span><span></span><span></span></span>
           </button>
+
+          <button
+            type="button"
+            className={`dock-btn mic-toggle ${listening ? 'listening' : ''}`}
+            title={listening ? 'Listening… click to stop' : 'Push-to-talk'}
+            aria-pressed={listening}
+            onClick={toggleListening}
+            disabled={!hasRecognition}
+          >🎤</button>
+
+          <div className="dock-input">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Ask anything..."
+              disabled={false}
+            />
+          </div>
+
+          <button type="submit" className="dock-btn send" disabled={false} title="Send">▶</button>
+
+          <button
+            type="button"
+            className={`dock-btn settings ${showSettings ? 'open' : ''}`}
+            title="Settings"
+            aria-expanded={showSettings}
+            onClick={() => setShowSettings(s => !s)}
+          >⚙</button>
         </form>
+
+        {showSettings && (
+          <div className="settings-popover" role="dialog" aria-label="Voice settings">
+            <div className="settings-row">
+              <label className="settings-label">Voice</label>
+              <div className="voice-select-wrap cinematic" title="Choose a voice" style={{flex:1}}>
+                <CinematicSelect
+                  options={voiceOptions}
+                  value={selectedVoice}
+                  onChange={(val) => setSelectedVoice(val)}
+                  ariaLabel="Voice selection"
+                />
+              </div>
+            </div>
+            <div className="settings-row sliders">
+              <label title="Rate"><span className="ctl-caption">Rate</span><input type="range" min="0.6" max="1.4" step="0.05" value={rate} onChange={e => setRate(Number(e.target.value))} /></label>
+              <label title="Pitch"><span className="ctl-caption">Pitch</span><input type="range" min="0.5" max="2" step="0.05" value={pitch} onChange={e => setPitch(Number(e.target.value))} /></label>
+              <label title="Volume"><span className="ctl-caption">Volume</span><input type="range" min="0" max="1" step="0.05" value={volume} onChange={e => setVolume(Number(e.target.value))} /></label>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

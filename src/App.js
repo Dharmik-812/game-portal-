@@ -2598,8 +2598,10 @@ const handleGameSelect = useCallback((game) => {
     const mid = 450;
     const total = 900;
     if (dir === 'to3d') {
-      setTimeout(() => setShowAI3D(true), mid);
+      // Show 3D view immediately to avoid brief flicker/disappear
+      setShowAI3D(true);
     } else {
+      // Hide mid-way when transitioning back to 2D
       setTimeout(() => setShowAI3D(false), mid);
     }
     setTimeout(() => {
@@ -2608,34 +2610,27 @@ const handleGameSelect = useCallback((game) => {
     }, total);
   }, [isTransforming3D]);
 
-  const handleOpen3DView = useCallback(() => { setLastAI('3d'); start3DTransform('to3d'); }, [start3DTransform]);
+  const handleOpen3DView = useCallback(() => { setLastAI('3d'); setShowAI3D(true); }, []);
   const handleClose3DView = useCallback(() => { setLastAI('2d'); start3DTransform('to2d'); }, [start3DTransform]);
 
   // Unified portal open from AI (handles 2D and 3D differently)
   const openPortalFromAI = useCallback(() => {
     if (showAI3D) {
+      // Do not auto-close 3D when opening the portal; delay portal until user exits 3D
       if (isPortalOpening3D) return;
-      setLastAI('3d');
-      setIsPortalOpening3D(true);
-      document.body.classList.add('portal-animating-3d');
-      setTimeout(() => {
-        setPortalUnlocked(true);
-        setShowAI3D(false);
-        setIsPortalOpening3D(false);
-        document.body.classList.remove('portal-animating-3d');
-      }, 2500);
-    } else {
-      if (isPortalOpening) return;
-      setLastAI('2d');
-      setIsPortalOpening(true);
-      document.body.classList.add('portal-animating');
-      setTimeout(() => {
-        setPortalUnlocked(true);
-        setIsPortalOpening(false);
-        document.body.classList.remove('portal-animating');
-      }, 2500);
+      showNotification('Close 3D view first to open the portal.', 'info');
+      return;
     }
-  }, [showAI3D, isPortalOpening3D, isPortalOpening]);
+    if (isPortalOpening) return;
+    setLastAI('2d');
+    setIsPortalOpening(true);
+    document.body.classList.add('portal-animating');
+    setTimeout(() => {
+      setPortalUnlocked(true);
+      setIsPortalOpening(false);
+      document.body.classList.remove('portal-animating');
+    }, 2500);
+  }, [showAI3D, isPortalOpening3D, isPortalOpening, showNotification]);
 
   // Keyboard shortcut: Ctrl + Shift + A to return to AI chatbot with reverse portal animation
   useEffect(() => {
@@ -3098,8 +3093,8 @@ const handleGameSelect = useCallback((game) => {
 
       {showAI3D && (
         <div className={`ai3d-fullscreen ${transformDir === 'to3d' && isTransforming3D ? 'entering' : ''} ${transformDir === 'to2d' && isTransforming3D ? 'exiting' : ''}`}> 
-          <AIAssistant3D
-            scene="https://prod.spline.design/RA9irXEPJfjkGNMV/scene.splinecode"
+<AIAssistant3D
+            scene="https://prod.spline.design/gQap7B6fEt3ajKsf/scene.splinecode"
             messages={chatMessages}
             isLoading={chatLoading}
             onSendMessage={(text) => chatRef.current?.sendExternalMessage(text)}

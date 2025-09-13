@@ -63,20 +63,21 @@ function triggerTalkStop(spline) {
 function triggerPortalOpen(spline) {
   if (!spline) return;
   try {
-    // Try object+typed events first
+    
     for (const obj of PORTAL_TRIGGER_OBJECTS) {
       for (const ev of PORTAL_TRIGGER_EVENTS) {
         emitSplineEvent(spline, ev, obj);
       }
     }
-    // Try custom event names (scene-defined)
+    
     const customEvents = ['PortalOpen', 'AvesOL Portal', 'AvesOLPortal', 'OpenPortal'];
     for (const ev of customEvents) emitSplineEvent(spline, ev);
-    // Legacy: pulse a SpeakingPulse or generic keyDown as a nudge
+    
     try { spline?.emitEvent('keyDown', 'Portal'); } catch (_) {}
     try { spline?.emitEvent('keyDown', 'SpeakingPulse'); } catch (_) {}
   } catch (_) {}
 }
+
 
 const AIAssistant3D = ({ messages: externalMessages, isLoading: externalLoading, onSendMessage, onUnlock, showToggle = true, showMessages = false, scene = DEFAULT_SCENE }) => {
   const [is3DMode, setIs3DMode] = useState(true);

@@ -6,7 +6,7 @@ import { ResponsiveLayout, ResponsiveGrid, ResponsiveText } from "./components/R
 import { AdaptiveSearch } from "./components/DynamicContent";
 import AIAssistant3D from "./components/AIAssistant3D";
 
-// Interactive AI Globe 3D-style Background (canvas)
+
 const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
   const canvasRef = useRef(null);
   const frameRef = useRef(0);
@@ -1216,7 +1216,7 @@ const ParticleBackground = React.memo(({
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [particleCount, connectionDistance, maxConnections, cursorRange, cursorInteraction, minSize, maxSize, speed, particleColor, lineColor, dynamicHue, safeMode, onAutoTuned]);
 
   return <canvas ref={canvasRef} className="particle-background" aria-hidden="true" />;
@@ -2507,7 +2507,7 @@ function App() {
     showNotification('Logged out successfully', 'info');
   }, [logoutUser, showNotification]);
 
-const handleGameSelect = useCallback((game) => {
+  const handleGameSelect = useCallback((game) => {
     if (game?.requiresLogin && !user) {
       showNotification('Please login to play this game', 'info');
       setAuthMode('login');
@@ -2830,6 +2830,9 @@ const handleGameSelect = useCallback((game) => {
                 onAutoTuned={handleParticleAutoTuned}
               />
             )}
+
+
+
             {/* Navbar */}
             <nav className="navbar">
               <div className="nav-brand">
@@ -2847,6 +2850,38 @@ const handleGameSelect = useCallback((game) => {
                   <AnimatedText text="Aves" delay={0} className="title-part" />
                   <AnimatedText text="OL" delay={400} className="title-part" />
                 </h1>
+                {/* 'i' info button next to the brand on the right side */}
+                <button
+                  type="button"
+                  className="portal-info-btn"
+                  title="Press Ctrl + Shift + S to return to the AI"
+                  aria-label="Return to AI"
+                  onClick={() => {
+                    // Run the same behavior as the reverse shortcut: return to AI from portal
+                    if (lastAI === '3d') {
+                      if (isPortalClosing3D) return;
+                      setIsPortalClosing3D(true);
+                      document.body.classList.add('portal-animating-3d');
+                      setTimeout(() => {
+                        setShowAI3D(true);
+                        setPortalUnlocked(false);
+                        setIsPortalClosing3D(false);
+                        document.body.classList.remove('portal-animating-3d');
+                      }, 2500);
+                    } else {
+                      if (isPortalClosing) return;
+                      setIsPortalClosing(true);
+                      document.body.classList.add('portal-animating');
+                      setTimeout(() => {
+                        setPortalUnlocked(false);
+                        setIsPortalClosing(false);
+                        document.body.classList.remove('portal-animating');
+                      }, 2500);
+                    }
+                  }}
+                >
+                  <span className="pi-icon" aria-hidden="true">⇄</span>
+                </button>
               </div>
 
               <div className="nav-actions">
@@ -3115,8 +3150,8 @@ const handleGameSelect = useCallback((game) => {
       )}
 
       {showAI3D && (
-        <div className={`ai3d-fullscreen ${transformDir === 'to3d' && isTransforming3D ? 'entering' : ''} ${transformDir === 'to2d' && isTransforming3D ? 'exiting' : ''}`}> 
-<AIAssistant3D
+        <div className={`ai3d-fullscreen ${transformDir === 'to3d' && isTransforming3D ? 'entering' : ''} ${transformDir === 'to2d' && isTransforming3D ? 'exiting' : ''}`}>
+          <AIAssistant3D
             scene="https://prod.spline.design/gQap7B6fEt3ajKsf/scene.splinecode"
             messages={chatMessages}
             isLoading={chatLoading}

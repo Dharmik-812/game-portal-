@@ -1360,6 +1360,12 @@ body.portal-animating {
   display: flex;
   flex-direction: column;
   animation: gameViewAppear 0.25s ease-out forwards;
+  overflow: hidden; /* ensure loader and animation clip inside */
+}
+
+/* Opening animation from card to container uses inline transform via JS; this class allows disabling the default keyframe fade */
+.game-view-container.opening-from-card {
+  animation: none;
 }
 
 .game-view-header {
@@ -1403,6 +1409,7 @@ body.portal-animating {
 }
 
 .game-frame-container {
+  position: relative;
   flex: 1;
   padding: 12px;
 }
@@ -1413,6 +1420,92 @@ body.portal-animating {
   border: none;
   border-radius: 10px;
   background: #000;
+  position: relative;
+  z-index: 1;
+}
+
+/* In-frame loading overlay */
+.game-loading-overlay {
+  position: absolute;
+  inset: 12px; /* match container padding so overlay aligns with iframe corners */
+  border-radius: 10px;
+  background: radial-gradient(120% 120% at 50% 50%, rgba(20,20,40,0.95) 0%, rgba(10,10,20,0.9) 100%);
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+  z-index: 2;
+}
+
+.game-loading-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.loader {
+  position: relative;
+  width: 84px;
+  height: 84px;
+}
+
+.loader-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 18px rgba(255,255,255,0.9), 0 0 36px rgba(140,82,255,0.6);
+  transform: translate(-50%, -50%) scale(1);
+  animation: loaderPulse 1.2s ease-in-out infinite;
+}
+
+.loader-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.12);
+  box-shadow: inset 0 0 18px rgba(140,82,255,0.25);
+  overflow: hidden;
+}
+
+.loader-ring::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(140,82,255,0.0) 0%, rgba(140,82,255,0.8) 35%, rgba(64,196,255,0.0) 60%, rgba(64,196,255,0.7) 85%, rgba(140,82,255,0.0) 100%);
+  filter: blur(1px);
+  animation: loaderSpin 1.4s linear infinite;
+}
+
+.loader-ring.r1 { width: 84px; height: 84px; animation-delay: 0s; }
+.loader-ring.r2 { width: 60px; height: 60px; animation-delay: -0.2s; }
+.loader-ring.r3 { width: 36px; height: 36px; animation-delay: -0.4s; }
+
+/* Spin speeds offset via ::before animation and small ring wobble */
+.loader-ring.r1::before { animation-duration: 1.8s; }
+.loader-ring.r2::before { animation-duration: 1.2s; }
+.loader-ring.r3::before { animation-duration: 0.9s; }
+
+@keyframes loaderSpin { to { transform: rotate(360deg); } }
+
+@keyframes loaderPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.loader-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 /* Footer polish */
@@ -1531,6 +1624,9 @@ body {
 
 /* Reduced motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
+
+  .game-loading-overlay { transition: none !important; }
+  .loader-ring::before, .loader-dot { animation: none !important; }
 
   *,
   *::before,

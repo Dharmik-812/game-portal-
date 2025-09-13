@@ -1364,7 +1364,9 @@ const GameCard = React.memo(({ game, onSelect, isSelected, index, isFavorite, on
       if (typeof onRequireLogin === 'function') onRequireLogin();
       return;
     }
-    onSelect(game);
+    const rect = cardRef.current ? cardRef.current.getBoundingClientRect() : null;
+    const originRect = rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null;
+    onSelect(game, originRect);
   }, [onSelect, onRequireLogin, game, user]);
 
   const handleFavoriteClick = useCallback((e) => {
@@ -1461,11 +1463,15 @@ const GenreFilter = React.memo(({ genres, selectedGenre, onSelect }) => {
 GenreFilter.displayName = 'GenreFilter';
 
 // GameView Component with improved accessibility
-const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentSession }) => {
+const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentSession, originRect }) => {
   const iframeRef = useRef(null);
   const containerRef = useRef(null);
   const [frameKey, setFrameKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFrameLoading, setIsFrameLoading] = useState(true);
+  const loadStartRef = useRef(0);
+  const loadTimerRef = useRef(null);
+  const LOADER_MS = 3000; // exact time to show loader (3s)
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -1518,6 +1524,69 @@ const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentS
     };
   }, []);
 
+  // Show loading overlay whenever a new frame is mounted or GameView opens
+  useEffect(() => {
+    if (isOpen) {
+      if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+      loadStartRef.current = Date.now();
+      setIsFrameLoading(true);
+      loadTimerRef.current = setTimeout(() => setIsFrameLoading(false), LOADER_MS);
+    }
+  }, [isOpen, frameKey, game]);
+
+  // Animate the container from the clicked card to full size (FLIP-style)
+  useEffect(() => {
+    if (!isOpen || !originRect) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.classList.add('opening-from-card');
+
+    const targetRect = container.getBoundingClientRect();
+    const scaleX = Math.max(0.01, originRect.width / targetRect.width);
+    const scaleY = Math.max(0.01, originRect.height / targetRect.height);
+    const translateX = originRect.left - targetRect.left;
+    const translateY = originRect.top - targetRect.top;
+
+    const prev = {
+      transform: container.style.transform,
+      transition: container.style.transition,
+      transformOrigin: container.style.transformOrigin,
+      willChange: container.style.willChange,
+    };
+
+    container.style.transformOrigin = 'top left';
+    container.style.willChange = 'transform';
+    container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+
+    // Force reflow before animating
+    container.getBoundingClientRect();
+
+    container.style.transition = 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)';
+    container.style.transform = 'translate(0, 0) scale(1, 1)';
+
+    const handleEnd = (e) => {
+      if (e.propertyName !== 'transform') return;
+      container.removeEventListener('transitionend', handleEnd);
+      container.classList.remove('opening-from-card');
+      container.style.transition = prev.transition;
+      container.style.transform = prev.transform;
+      container.style.transformOrigin = prev.transformOrigin;
+      container.style.willChange = prev.willChange;
+    };
+
+    container.addEventListener('transitionend', handleEnd);
+
+    return () => {
+      container.removeEventListener('transitionend', handleEnd);
+      container.classList.remove('opening-from-card');
+      container.style.transition = prev.transition;
+      container.style.transform = prev.transform;
+      container.style.transformOrigin = prev.transformOrigin;
+      container.style.willChange = prev.willChange;
+    };
+  }, [isOpen, originRect]);
+
   const handleFullscreenToggle = useCallback(() => {
     const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     if (fsEl) {
@@ -1531,7 +1600,22 @@ const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentS
     if (request) request.call(el);
   }, []);
 
+  const handleFrameLoad = useCallback(() => {
+    // No-op: loader is controlled by a fixed 3s timer
+  }, []);
+
+  // Cleanup any pending loader timers on unmount
+  useEffect(() => {
+    return () => {
+      if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+    };
+  }, []);
+
   const handleReload = useCallback(() => {
+    if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+    loadStartRef.current = Date.now();
+    setIsFrameLoading(true);
+    loadTimerRef.current = setTimeout(() => setIsFrameLoading(false), LOADER_MS);
     setFrameKey(k => k + 1);
   }, []);
 
@@ -1542,7 +1626,7 @@ const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentS
   return (
     <div className="game-view-overlay" onClick={handleOverlayClick}>
       <div className="game-view-backdrop"></div>
-      <div className="game-view-container" ref={containerRef}>
+      <div className={`game-view-container ${originRect ? 'opening-from-card' : ''}`} ref={containerRef}>
         <div className="game-view-header">
           <h2 id="game-view-title">{game.name}</h2>
           <div className="game-actions">
@@ -1559,6 +1643,15 @@ const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentS
           </button>
         </div>
         <div className="game-frame-container">
+          <div className={`game-loading-overlay ${isFrameLoading ? 'visible' : ''}`} aria-hidden={!isFrameLoading}>
+            <div className="loader">
+              <div className="loader-ring r1"></div>
+              <div className="loader-ring r2"></div>
+              <div className="loader-ring r3"></div>
+              <div className="loader-dot"></div>
+            </div>
+            <div className="loader-text" role="status" aria-live="polite">Initializing game environment...</div>
+          </div>
           <iframe
             ref={iframeRef}
             key={frameKey}
@@ -1569,6 +1662,7 @@ const GameView = React.memo(({ game, onClose, isOpen, trackGamePlay, endCurrentS
             sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups"
             loading="eager"
             aria-labelledby="game-view-title"
+            onLoad={handleFrameLoad}
           />
         </div>
       </div>
@@ -2369,6 +2463,7 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [selectedGame, setSelectedGame] = useState(null);
+  const [openOriginRect, setOpenOriginRect] = useState(null);
   const [sortBy, setSortBy] = useState('popular');
   const [showParticleSettings, setShowParticleSettings] = useState(false);
   const [secretClicks, setSecretClicks] = useState(0);
@@ -2507,18 +2602,20 @@ function App() {
     showNotification('Logged out successfully', 'info');
   }, [logoutUser, showNotification]);
 
-  const handleGameSelect = useCallback((game) => {
+  const handleGameSelect = useCallback((game, originRect) => {
     if (game?.requiresLogin && !user) {
       showNotification('Please login to play this game', 'info');
       setAuthMode('login');
       setShowAuth(true);
       return;
     }
+    setOpenOriginRect(originRect || null);
     setSelectedGame(game);
   }, [user, showNotification, setAuthMode, setShowAuth]);
 
   const handleGameClose = useCallback(() => {
     setSelectedGame(null);
+    setOpenOriginRect(null);
   }, []);
 
   const handleAuthShow = useCallback((mode) => {
@@ -3060,6 +3157,7 @@ function App() {
                 isOpen={!!selectedGame}
                 trackGamePlay={trackGamePlay}
                 endCurrentSession={endCurrentSession}
+                originRect={openOriginRect}
               />
 
               {/* Auth Modal */}

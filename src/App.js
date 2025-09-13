@@ -438,12 +438,40 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
         <div className="chatbot-header">
           <h2>AvesAI Assistant</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              type="button"
-              className="chat-icon-btn"
-              title="Switch to 3D Assistant"
-              onClick={() => onOpen3D && onOpen3D()}
-            >3D</button>
+            <div
+              className="ai-mode-toggle"
+              role="group"
+              aria-label="AI mode"
+              data-active="2d"
+            >
+              <button
+                type="button"
+                className="seg-btn"
+                aria-pressed="true"
+                disabled
+                title="2D mode active"
+              >
+                <svg className="seg-icn seg-2d" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="5" y="7" width="12" height="10" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                <span className="seg-label">2D</span>
+              </button>
+              <button
+                type="button"
+                className="seg-btn"
+                aria-pressed="false"
+                title="Switch to 3D"
+                onClick={() => onOpen3D && onOpen3D()}
+              >
+                <svg className="seg-icn seg-3d" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <polygon points="12,3 20,8 12,13 4,8" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <polygon points="4,8 12,13 12,21 4,16" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <polygon points="20,8 12,13 12,21 20,16" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                <span className="seg-label">3D</span>
+              </button>
+              <span className="seg-thumb" aria-hidden="true"></span>
+            </div>
             <div className="status-indicator"></div>
           </div>
         </div>
@@ -3258,12 +3286,42 @@ function App() {
             showToggle={false}
             showMessages={false}
           />
-          <button
-            type="button"
-            className="ai3d-close-btn"
-            title="Back to 2D Chat"
-            onClick={handleClose3DView}
-          >← Back</button>
+          <div className="ai3d-mode-toggle">
+            <div
+              className="ai-mode-toggle overlay"
+              role="group"
+              aria-label="AI mode"
+              data-active="3d"
+            >
+              <button
+                type="button"
+                className="seg-btn"
+                aria-pressed="false"
+                title="Switch to 2D"
+                onClick={handleClose3DView}
+              >
+                <svg className="seg-icn seg-2d" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="5" y="7" width="12" height="10" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                <span className="seg-label">2D</span>
+              </button>
+              <button
+                type="button"
+                className="seg-btn"
+                aria-pressed="true"
+                disabled
+                title="3D mode active"
+              >
+                <svg className="seg-icn seg-3d" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <polygon points="12,3 20,8 12,13 4,8" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <polygon points="4,8 12,13 12,21 4,16" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <polygon points="20,8 12,13 12,21 20,16" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                <span className="seg-label">3D</span>
+              </button>
+              <span className="seg-thumb" aria-hidden="true"></span>
+            </div>
+          </div>
         </div>
       )}
     </ResponsiveLayout>

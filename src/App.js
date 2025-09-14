@@ -592,13 +592,46 @@ const GAMES = [
   { name: "Line Rider", url: "https://www.linerider.com/", img: "/linerider.PNG", genre: "Sandbox" },
   { name: "Townscaper", url: "https://oskarstalberg.com/Townscaper/", img: "/townscaper.PNG", genre: "Sandbox", requiresLogin: true },
   { name: "Sandspiel", url: "https://sandspiel.club/", img: "/sands.png", genre: "Sandbox" },
-  { name: "OvO", url: "https://www.mortgagecalculator.org/money-games/ovo/", img: "/ovo.PNG", genre: "Platformer" },
   { name: "Agar.io", url: "https://agar.io/#ffa", img: "/agar.PNG", genre: "IO", requiresLogin: true },
   { name: "Diep.io", url: "https://diep.io/", img: "/diep.PNG", genre: "IO", requiresLogin: true },
   { name: "MooMoo.io", url: "https://moomoo.io/?server=singapore:PW", img: "/moomoo.PNG", genre: "IO", requiresLogin: true },
   { name: "Zombs.io", url: "https://zombs.io/", img: "/zombs.PNG", genre: "IO", requiresLogin: true },
   { name: "Starblast.io", url: "https://starblast.io/#7134", img: "/starblast.PNG", genre: "IO", requiresLogin: true },
   { name: "Run 3", url: "https://run3.io", img: "/run3.PNG", genre: "Platformer" },
+
+  // New games
+  { name: "BasketBros", url: "https://basketbros.io/", img: "https://www.google.com/s2/favicons?domain=basketbros.io&sz=128", genre: "Sports" },
+  { name: "Venge.io", url: "https://venge.io/", img: "/venge.PNG", genre: "FPS" },
+  { name: "1v1.lol", url: "https://1v1.lol/", img: "/1v1lol.PNG", genre: "Shooter" },
+  { name: "Little Alchemy 2", url: "https://littlealchemy2.com/", img: "/littlealchemy.PNG", genre: "Puzzle" },
+  { name: "The Wiki Game", url: "https://www.thewikigame.com/play/", img: "/thewikigmae.PNG", genre: "Word" },
+  { name: "Globle", url: "https://globle-game.com/game", img: "https://www.google.com/s2/favicons?domain=globle-game.com&sz=128", genre: "Puzzle" },
+  { name: "2048", url: "https://play2048.co/", img: "/2048.png", genre: "Puzzle" },
+  { name: "Shell Shockers", url: "https://shellshock.io/", img: "/shellshocker.PNG", genre: "FPS", requiresLogin: true },
+  { name: "Starve.io", url: "https://starve.io/", img: "/straveio.PNG", genre: "IO" },
+  { name: "ZombsRoyale.io", url: "https://zombsroyale.io/", img: "/zombsroyal.PNG", genre: "IO", requiresLogin: true },
+  { name: "Wings.io", url: "https://wings.io/", img: "/wingsio.PNG", genre: "IO" },
+  { name: "War Brokers", url: "https://warbrokers.io/signin.php", img: "/warbroker.PNG", genre: "FPS" },
+  { name: "Bit Heroes Arena", url: "https://bitheroesarena.io/", img: "/bitheroes.PNG", genre: "IO", requiresLogin: true },
+  { name: "Gats.io", url: "https://gats.io/", img: "/gatsio.PNG", genre: "IO", requiresLogin: true },
+  { name: "Deeeep.io", url: "https://deeeep.io/", img: "/deeeepio.PNG", genre: "IO" },
+  { name: "Gartic.io", url: "https://gartic.io/", img: "/garticio.PNG", genre: "Party" },
+
+  // Official browser games (non-portal), added per criteria
+  { name: "Evades.io", url: "https://evades.io/", img: "/evades.PNG", genre: "Arcade" },
+  { name: "Smash Karts", url: "https://smashkarts.io/", img: "/smashkarts.PNG", genre: "Racing", requiresLogin: true },
+  { name: "skribbl.io", url: "https://skribbl.io/", img: "/skirrble.PNG", genre: "Party" },
+  { name: "florr.io", url: "https://florr.io/", img: "/florr.PNG", genre: "Adventure" },
+  { name: "mope.io", url: "https://mope.io/", img: "/mope.PNG", genre: "Survival", requiresLogin: true },
+  { name: "BuildRoyale.io", url: "https://buildroyale.io/", img: "/buildroyal.PNG", genre: "Shooter", requiresLogin: true },
+  { name: "digdig.io", url: "https://digdig.io/", img: "/digdigio.PNG", genre: "Arcade" },
+  { name: "Territorial.io", url: "https://territorial.io/", img: "/territorail.PNG", genre: "Strategy" },
+  { name: "ducklings.io", url: "https://ducklings.io/", img: "/ducklings.PNG", genre: "Casual" },
+
+  // Additional official games per criteria
+  { name: "Taming.io", url: "https://taming.io/", img: "/taming.PNG", genre: "Survival" },
+  { name: "Arras.io", url: "https://arras.io/", img: "/arras.PNG", genre: "Shooter", requiresLogin: true },
+  { name: "Superhex.io", url: "https://superhex.io/", img: "/superhex.PNG", genre: "IO" }
 ];
 
 // Custom hook for theme management

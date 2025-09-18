@@ -5,6 +5,66 @@ import { useResponsive, useAdaptiveUI } from "./hooks/useResponsive";
 import { ResponsiveLayout, ResponsiveGrid, ResponsiveText } from "./components/ResponsiveLayout";
 import { AdaptiveSearch } from "./components/DynamicContent";
 import AIAssistant3D from "./components/AIAssistant3D";
+import CinematicSelect from "./components/CinematicSelect.jsx";
+
+// Small overlay controls used in 3D view to keep model & detail in sync with 2D chat
+function ThreeDControls({ chatRef }) {
+  const [availableModels, setAvailableModels] = React.useState([]);
+  const [model, setModel] = React.useState('');
+  const [detail, setDetail] = React.useState('balanced');
+  const rootRef = React.useRef(null);
+
+  React.useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/models');
+        const data = await res.json().catch(() => ({ models: [] }));
+        if (!ignore && Array.isArray(data.models)) setAvailableModels(data.models);
+      } catch (_) {}
+    })();
+    // Pull current 2D state as defaults
+    try {
+      const s = chatRef.current?.getState?.();
+      if (s) { setModel(s.modelName || ''); setDetail(s.detailMode || 'balanced'); }
+    } catch (_) {}
+    return () => { ignore = true; };
+  }, [chatRef]);
+
+  const applyModel = React.useCallback((m) => {
+    setModel(m);
+    try { chatRef.current?.setModel?.(m); } catch (_) {}
+  }, [chatRef]);
+
+  const applyDetail = React.useCallback((d) => {
+    setDetail(d);
+    try { chatRef.current?.setDetailMode?.(d); } catch (_) {}
+  }, [chatRef]);
+
+  return (
+    <div className="ai3d-controls" ref={rootRef}>
+      <div className="ai3d-row">
+        <div className="ctrl model">
+          <CinematicSelect
+            options={(availableModels || []).map(m => ({ value: m, label: m }))}
+            value={model}
+            onChange={applyModel}
+            placeholder="Model"
+            ariaLabel="Model"
+          />
+        </div>
+        <div className="ctrl detail" role="tablist" aria-label="Response length">
+          <div className="seg rework small">
+            <button type="button" className={`seg-btn ${detail==='fast'?'active':''}`} aria-selected={detail==='fast'} onClick={() => applyDetail('fast')} title="Fast">⚡</button>
+            <button type="button" className={`seg-btn ${detail==='balanced'?'active':''}`} aria-selected={detail==='balanced'} onClick={() => applyDetail('balanced')} title="Balanced">•</button>
+            <button type="button" className={`seg-btn ${detail==='detailed'?'active':''}`} aria-selected={detail==='detailed'} onClick={() => applyDetail('detailed')} title="Detailed">✳</button>
+            <span className={`seg-thumb ${detail}`}></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
@@ -158,14 +218,91 @@ const AIGlobeBackground = React.memo(({ accentColor = '#8c52ff' }) => {
   return <canvas ref={canvasRef} className="ai-globe-background" aria-hidden="true" />;
 });
 
+// Lightweight fancy dropdown with glass UI
+function FancySelect({ options = [], value, onChange, label = 'Select', icon = '✨' }) {
+  const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
+  const [maxH, setMaxH] = useState(220);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const recompute = () => {
+      if (!wrapRef.current) return;
+      const rect = wrapRef.current.getBoundingClientRect();
+      const spaceBelow = Math.max(0, window.innerHeight - rect.bottom);
+      const spaceAbove = Math.max(0, rect.top);
+      const shouldDropUp = spaceBelow < 240 && spaceAbove > spaceBelow;
+      setDropUp(shouldDropUp);
+      setMaxH(Math.max(160, Math.min(360, (shouldDropUp ? spaceAbove : spaceBelow) - 16)));
+    };
+    recompute();
+    window.addEventListener('resize', recompute);
+    window.addEventListener('scroll', recompute, true);
+    return () => {
+      window.removeEventListener('resize', recompute);
+      window.removeEventListener('scroll', recompute, true);
+    };
+  }, [open]);
+
+  return (
+    <div className={`fancy-select ${value ? 'active' : ''}`} ref={wrapRef}>
+      <button
+        type="button"
+        className="fs-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(v => !v)}
+        title={label}
+      >
+        <span className="fs-icn" aria-hidden="true">{icon}</span>
+        <span className="fs-value">{value || label}</span>
+        <span className="fs-caret" aria-hidden="true">▾</span>
+      </button>
+      <ul
+        className={`fs-list ${open ? 'open' : ''} ${dropUp ? 'drop-up' : ''}`}
+        role="listbox"
+        style={{ maxHeight: maxH, overflowY: 'auto' }}
+      >
+        {options.map(opt => (
+          <li
+            key={opt}
+            className={`fs-option ${opt === value ? 'selected' : ''}`}
+            role="option"
+            aria-selected={opt === value}
+            onClick={() => { onChange && onChange(opt); setOpen(false); }}
+          >
+            {opt}
+          </li>
+        ))}
+        {!options.length && (
+          <li className="fs-empty" aria-disabled="true">No models</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 // ChatbotInterface Component
 const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onLoadingChange }, ref) => {
   const [messages, setMessages] = useState([
-    { text: "hey, what can i help you with? AvesOL hides", sender: 'bot' }
+    { text: "Hey! I’m AvesOL — your friendly assistant. Ask me anything. type Avesol he hides", sender: 'bot' }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState([]); // {id, url, name, type, size}
+  const [detailMode, setDetailMode] = useState('fast'); // 'fast' | 'balanced' | 'detailed'
+  const [modelName, setModelName] = useState('');
+  const [availableModels, setAvailableModels] = useState([]);
   const [regeneratingIndex, setRegeneratingIndex] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -193,6 +330,25 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  }, []);
+
+  // Fetch available models on mount
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/models');
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({ models: [] }));
+        if (!ignore && Array.isArray(data.models)) {
+          setAvailableModels(data.models);
+          // Default pick mistral:latest if present, else first
+          const preferred = data.models.find(m => /^mistral(:|$)/i.test(m)) || data.models[0];
+          if (preferred) setModelName(preferred);
+        }
+      } catch (_) {}
+    })();
+    return () => { ignore = true; };
   }, []);
 
   const sendText = useCallback(async (text, attList = []) => {
@@ -227,54 +383,55 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
       ? "\n\n[Attached images: " + userMessage.attachments.map(a => a.name).join(', ') + "]"
       : '';
 
-    // Send message to Gemini API
+    // Send message to local backend (Ollama via Express) with streaming
+    // Create an AbortController so we can cancel on unmount or new send
+    const controller = new AbortController();
+
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCnYAjRq_3kf5b3jTFQndZmCHmeSVQVijw`, {
+      const response = await fetch(`/api/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: String(text || '') + attachmentNote }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          }
+          message: String(text || '') + attachmentNote,
+          detail: detailMode,
+          model: modelName || undefined
         }),
+        signal: controller.signal,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        let botResponse = "I'm not sure how to respond to that.";
+      if (!response.ok || !response.body) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Backend error ${response.status} ${response.statusText} ${errorText}`);
+      }
 
-        if (data?.candidates?.[0]?.content?.parts?.[0]) {
-          botResponse = data.candidates[0].content.parts[0].text;
-        } else if (data.error) {
-          botResponse = `Sorry, there was an error: ${data.error.message || 'Unknown error'}`;
-          console.error('Gemini API Error:', data.error);
-        } else {
-          console.error('Unexpected response format:', data);
-          botResponse = "Sorry, I received an unexpected response format.";
+      // Add a placeholder bot message and stream chunks into it
+      let botIndex = null;
+      setMessages(prev => {
+        botIndex = prev.length;
+        return [...prev, { text: '', sender: 'bot' }];
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          setMessages(prev => prev.map((m, idx) => idx === botIndex ? { ...m, text: (m.text || '') + chunk } : m));
         }
-
-        // Add bot response
-        setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
-      } else {
-        const errorData = await response.text();
-        console.error('API Error:', response.status, response.statusText, errorData);
-        setMessages(prev => [...prev, { text: `Sorry, I'm having trouble connecting right now. (Error: ${response.status} - ${response.statusText})`, sender: 'bot' }]);
       }
     } catch (error) {
+      if (error?.name === 'AbortError') {
+        // Ignore silent aborts (e.g., navigation/unmount/user cancelled)
+        return;
+      }
       console.error('Connection Error:', error);
       setMessages(prev => [...prev, { text: `Connection error: ${error.message}`, sender: 'bot' }]);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, onUnlock]);
+  }, [isLoading, onUnlock, detailMode, modelName]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -297,36 +454,47 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
     setRegeneratingIndex(botIndex);
     setIsLoading(true);
 
+    const controller = new AbortController();
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCnYAjRq_3kf5b3jTFQndZmCHmeSVQVijw`, {
+      const response = await fetch(`/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prevUserMsg.text + attachmentNote }] }],
-          generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 1024 }
-        })
+          message: String(prevUserMsg.text || '') + attachmentNote,
+          detail: detailMode,
+          model: modelName || undefined
+        }),
+        signal: controller.signal,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        let botResponse = "I'm not sure how to respond to that.";
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-          botResponse = data.candidates[0].content.parts[0].text;
+      if (!response.ok || !response.body) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Backend error ${response.status} ${response.statusText} ${errorText}`);
+      }
+
+      // Stream into the existing bot message slot
+      setMessages(prev => prev.map((m, idx) => idx === botIndex ? { ...m, text: '' } : m));
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          setMessages(prev => prev.map((m, idx) => idx === botIndex ? { ...m, text: (m.text || '') + chunk } : m));
         }
-        setMessages(prev => prev.map((m, idx) => idx === botIndex ? { text: botResponse, sender: 'bot' } : m));
-      } else {
-        const errorData = await response.text();
-        setMessages(prev => prev.map((m, idx) => idx === botIndex ? { text: `Sorry, I'm having trouble regenerating. (${response.status} ${response.statusText})`, sender: 'bot' } : m));
-        console.error('Regen error:', errorData);
       }
     } catch (error) {
+      if (error?.name === 'AbortError') {
+        return; // silent cancel
+      }
       console.error('Regen connection error:', error);
       setMessages(prev => prev.map((m, idx) => idx === botIndex ? { text: `Connection error: ${error.message}`, sender: 'bot' } : m));
     } finally {
       setIsLoading(false);
       setRegeneratingIndex(null);
     }
-  }, [isLoading, messages]);
+  }, [isLoading, messages, detailMode, modelName]);
 
   const handleEditPrompt = useCallback((userIndex) => {
     const msg = messages[userIndex];
@@ -362,11 +530,16 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
     }
   }, [handleFiles]);
 
+  // Cancel any in-flight request when the component unmounts to avoid noisy errors
   useEffect(() => {
     const el = inputRef.current;
-    if (!el) return;
-    el.addEventListener('paste', handlePaste);
-    return () => el.removeEventListener('paste', handlePaste);
+    if (el) {
+      el.addEventListener('paste', handlePaste);
+    }
+    return () => {
+      if (el) el.removeEventListener('paste', handlePaste);
+      // Note: individual fetch calls use their own controllers and ignore AbortError
+    };
   }, [handlePaste]);
 
   const removeAttachment = useCallback((id) => {
@@ -423,11 +596,14 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
     });
   }, []);
 
-  // Expose a simple send method to other components (e.g. 3D overlay)
+  // Expose methods for 3D overlay to interact with chat settings and send messages
   useImperativeHandle(ref, () => ({
     sendExternalMessage: async (text) => {
       await sendText(text, []);
-    }
+    },
+    setModel: (name) => setModelName(name),
+    setDetailMode: (mode) => setDetailMode(mode),
+    getState: () => ({ modelName, detailMode }),
   }));
 
   return (
@@ -535,10 +711,11 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
 
         <form onSubmit={handleSendMessage} className="chatbot-input-form">
           <button
-            className="chat-icon-btn"
+            className="chip-btn attach-btn"
             type="button"
             title="Attach images"
             onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach images"
           >📎</button>
           <input
             ref={fileInputRef}
@@ -548,12 +725,35 @@ const ChatbotInterface = forwardRef(({ onUnlock, onOpen3D, onMessagesChange, onL
             style={{ display: 'none' }}
             onChange={(e) => handleFiles(e.target.files)}
           />
+
+          {/* Sleek controls */}
+          <div className="ai-controls">
+            <div className="ctrl model">
+              {/* Improved model picker with better overlay behavior (still light-weight) */}
+              <FancySelect
+                options={availableModels}
+                value={modelName}
+                onChange={(v) => setModelName(v)}
+                label="Model"
+                icon="🧠"
+              />
+            </div>
+            <div className="ctrl detail" role="tablist" aria-label="Response length">
+              <div className="seg rework">
+                <button type="button" className={`seg-btn ${detailMode==='fast'?'active':''}`} aria-selected={detailMode==='fast'} onClick={() => setDetailMode('fast')} title="Fast">⚡ Fast</button>
+                <button type="button" className={`seg-btn ${detailMode==='balanced'?'active':''}`} aria-selected={detailMode==='balanced'} onClick={() => setDetailMode('balanced')} title="Balanced">• Balanced</button>
+                <button type="button" className={`seg-btn ${detailMode==='detailed'?'active':''}`} aria-selected={detailMode==='detailed'} onClick={() => setDetailMode('detailed')} title="Detailed">✳ Detailed</button>
+                <span className={`seg-thumb ${detailMode}`}></span>
+              </div>
+            </div>
+          </div>
+
           <input
             ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type your message here..."
+            placeholder="Ask anything..."
             disabled={false}
           />
           <button type="submit" disabled={isLoading}>
@@ -854,6 +1054,22 @@ const useUserData = () => {
       return newHistory;
     });
 
+    // Also notify backend (if logged in) to persist stats server-side
+    try {
+      // user may be null; token optional
+      if (user?.token) {
+        fetch('/api/stats/played', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.token}`,
+          },
+          credentials: 'include',
+          body: JSON.stringify({ gameName: game.name, genre: game.genre })
+        }).catch(() => {});
+      }
+    } catch (_) {}
+
     // Start session timer
     const sessionTimer = setInterval(() => {
       setGameHistory(prevHistory => {
@@ -875,7 +1091,7 @@ const useUserData = () => {
 
     // Check for achievements
     checkPlayAchievements(gameHistory.length + 1);
-  }, [gameHistory.length, updateGameStats, checkPlayAchievements]);
+  }, [gameHistory.length, updateGameStats, checkPlayAchievements, user]);
 
   const endCurrentSession = useCallback(() => {
     const sessionId = currentSessionIdRef.current;
@@ -1775,6 +1991,15 @@ const StatsPanel = React.memo(({ gameStats, gameHistory, favorites, achievements
     return gameHistory.reduce((total, record) => total + (record.duration || 0), 0);
   }, [gameHistory]);
 
+  // Calculate total games played from aggregated per-game play counts (not capped by history)
+  const totalPlays = useMemo(() => {
+    try {
+      return Object.values(gameStats || {}).reduce((sum, s) => sum + (s?.playCount || 0), 0);
+    } catch (_) {
+      return 0;
+    }
+  }, [gameStats]);
+
   // Format time function
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
@@ -1793,7 +2018,7 @@ const StatsPanel = React.memo(({ gameStats, gameHistory, favorites, achievements
         <div className="stats-grid">
           <div className="stat-card">
             <span className="stat-icon">🎮</span>
-            <span className="stat-value">{gameHistory.length}</span>
+            <span className="stat-value">{totalPlays}</span>
             <span className="stat-label">Games Played</span>
           </div>
           <div className="stat-card">
@@ -2653,15 +2878,61 @@ function App() {
     };
   }, [theme]);
 
-  const handleLogin = useCallback((userData, remember = false) => {
+  const handleLogin = useCallback(async (userData, remember = false) => {
+    // 1) Merge local profile into server profile
+    try {
+      if (userData?.token) {
+        const localProfile = {
+          favorites,
+          achievements,
+          gameStats, // optional; server will merge max play counts
+        };
+        await fetch('/api/profile/merge', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userData.token}`
+          },
+          credentials: 'include',
+          body: JSON.stringify(localProfile)
+        });
+
+        // 2) Load canonical profile from server and hydrate UI
+        const profRes = await fetch('/api/profile/me', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${userData.token}` },
+          credentials: 'include'
+        });
+        if (profRes.ok) {
+          const profile = await profRes.json().catch(() => ({}));
+          // Replace local storage with server profile
+          localStorage.setItem('gameFavorites', JSON.stringify(profile.favorites || []));
+          localStorage.setItem('gameAchievements', JSON.stringify(profile.achievements || {}));
+          localStorage.setItem('gameStats', JSON.stringify(profile.gameStats || {}));
+        }
+
+        // 3) Also load server-side stat totals (optional display later)
+        // const statsRes = await fetch('/api/stats/me', { headers: { 'Authorization': `Bearer ${userData.token}` }, credentials: 'include' });
+        // if (statsRes.ok) { const serverStats = await statsRes.json(); /* could merge into local if desired */ }
+      }
+    } catch (e) {
+      console.warn('Profile sync failed:', e);
+    }
+
+    // 4) Commit login locally
     loginUser(userData, remember);
     showNotification(`Welcome back, ${userData.username}!`, 'success');
-  }, [loginUser, showNotification]);
+  }, [loginUser, showNotification, favorites, achievements, gameStats]);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    try {
+      if (user?.token) {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      }
+    } catch (_) {}
     logoutUser();
     showNotification('Logged out successfully', 'info');
-  }, [logoutUser, showNotification]);
+  }, [logoutUser, showNotification, user]);
 
   const handleGameSelect = useCallback((game, originRect) => {
     if (game?.requiresLogin && !user) {
@@ -3097,7 +3368,7 @@ function App() {
                       value={searchText}
                       onChange={setSearchText}
                       placeholder="Search games..."
-                      suggestions={genres.map(g => g.name)}
+                      suggestions={genres}
                       onSuggestionSelect={(suggestion) => {
                         setSelectedGenre(suggestion);
                         setSearchText('');
@@ -3319,6 +3590,7 @@ function App() {
             showToggle={false}
             showMessages={false}
           />
+          {/* 3D mode switch (top-right) */}
           <div className="ai3d-mode-toggle">
             <div
               className="ai-mode-toggle overlay"
@@ -3355,6 +3627,9 @@ function App() {
               <span className="seg-thumb" aria-hidden="true"></span>
             </div>
           </div>
+
+          {/* 3D overlay: model picker + detail mode (top-left) */}
+          <ThreeDControls chatRef={chatRef} />
         </div>
       )}
     </ResponsiveLayout>

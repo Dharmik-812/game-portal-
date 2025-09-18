@@ -179,9 +179,11 @@ export const AdaptiveSearch = ({
 
     // Filter suggestions based on input
     const filteredSuggestions = useMemo(() => {
-        if (!debouncedValue || debouncedValue.length < 2) return [];
-        return suggestions.filter(suggestion =>
-            suggestion.toLowerCase().includes(debouncedValue.toLowerCase())
+        const q = String(debouncedValue || '');
+        if (!q || q.length < 2) return [];
+        const list = Array.isArray(suggestions) ? suggestions.filter(s => typeof s === 'string') : [];
+        return list.filter(suggestion =>
+            suggestion.toLowerCase().includes(q.toLowerCase())
         ).slice(0, responsive.isMobile ? 5 : 8);
     }, [debouncedValue, suggestions, responsive.isMobile]);
 

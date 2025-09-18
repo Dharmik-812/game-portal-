@@ -430,9 +430,19 @@
         font-size: 18px;
     }
 
-    .auth-modal-header h3 {
-        font-size: 20px;
-    }
+.auth-modal-header h3 {
+  margin: 0;
+}
+
+.auth-error-banner {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.35);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+}
 
     .auth-remember-forgot {
         flex-direction: column;

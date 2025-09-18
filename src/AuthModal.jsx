@@ -12,6 +12,7 @@ const AuthModal = React.memo(({ onClose, onLogin, mode, setMode }) => {
         rememberMe: false
     });
     const [errors, setErrors] = useState({});
+    const [apiError, setApiError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -72,6 +73,7 @@ const AuthModal = React.memo(({ onClose, onLogin, mode, setMode }) => {
 
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
+        setApiError("");
         setIsSubmitting(true);
 
         if (!validateForm()) {
@@ -79,25 +81,49 @@ const AuthModal = React.memo(({ onClose, onLogin, mode, setMode }) => {
             return;
         }
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+            const payload = mode === 'login'
+              ? { email: formData.email, password: formData.password }
+              : { username: formData.username, email: formData.email, password: formData.password, dob: formData.dob };
 
-        if (mode === 'login') {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const msg = data?.error || data?.message || 'Authentication failed';
+                setApiError(String(msg));
+                setIsSubmitting(false);
+                return;
+            }
+
+            const user = data?.user || {};
+            const token = data?.accessToken || '';
+            if (!user || !token) {
+                setApiError('Invalid server response');
+                setIsSubmitting(false);
+                return;
+            }
+
             onLogin({
-                username: formData.email.split('@')[0],
-                email: formData.email,
-                dob: "2000-01-01"
+                id: user.id,
+                username: user.username || (user.email ? user.email.split('@')[0] : 'user'),
+                email: user.email,
+                dob: user.dob || '2000-01-01',
+                token
             }, formData.rememberMe);
-        } else {
-            onLogin({
-                username: formData.username,
-                email: formData.email,
-                dob: formData.dob
-            }, formData.rememberMe);
+
+            setIsSubmitting(false);
+            onClose();
+        } catch (err) {
+            setApiError('Network error, please try again.');
+            setIsSubmitting(false);
         }
-
-        setIsSubmitting(false);
-        onClose();
     }, [validateForm, mode, onLogin, onClose, formData]);
 
     const handleModeSwitch = useCallback(() => {
@@ -177,6 +203,9 @@ const AuthModal = React.memo(({ onClose, onLogin, mode, setMode }) => {
                     </div>
                     <h3>{mode === 'login' ? 'Welcome Back!' : 'Join Our Community'}</h3>
                     <p>{mode === 'login' ? 'Sign in to continue your gaming journey' : 'Create an account to unlock all features'}</p>
+                    {apiError && (
+                        <div className="auth-error-banner" role="alert" aria-live="assertive">{apiError}</div>
+                    )}
                 </div>
 
                 {/* Social login options */}
